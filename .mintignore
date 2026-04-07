@@ -1,0 +1,35 @@
+# Mintlify ignore file
+# Files and folders to exclude from documentation
+
+# Git
+.git
+.gitignore
+
+# Node modules
+node_modules/
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Build files
+.next/
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+
+# Documentation meta
+DOCUMENTATION_SUMMARY.md
+DEPLOYMENT_GUIDE.txt
+docs/
+
+# Environment
+.env
+.env.local
