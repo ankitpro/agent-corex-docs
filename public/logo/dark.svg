@@ -1,0 +1,39 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#1e1b4b" stroke="#818cf8" stroke-width="2"/>
+
+  <!-- Main gradient circle -->
+  <defs>
+    <linearGradient id="gradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Center circle -->
+  <circle cx="100" cy="100" r="70" fill="url(#gradientDark)"/>
+
+  <!-- Tool icons (simplified) -->
+  <!-- Left tool -->
+  <rect x="40" y="85" width="25" height="25" rx="3" fill="#ffffff" opacity="0.9"/>
+  <circle cx="47" cy="92" r="2" fill="#1e1b4b"/>
+  <circle cx="53" cy="92" r="2" fill="#1e1b4b"/>
+  <circle cx="47" cy="100" r="2" fill="#1e1b4b"/>
+
+  <!-- Right tool -->
+  <rect x="135" y="85" width="25" height="25" rx="3" fill="#ffffff" opacity="0.9"/>
+  <circle cx="142" cy="92" r="2" fill="#1e1b4b"/>
+  <circle cx="148" cy="92" r="2" fill="#1e1b4b"/>
+  <circle cx="142" cy="100" r="2" fill="#1e1b4b"/>
+
+  <!-- Center connection -->
+  <circle cx="100" cy="100" r="8" fill="#ffffff" opacity="0.95"/>
+  <circle cx="100" cy="100" r="5" fill="#1e1b4b"/>
+
+  <!-- Connection lines -->
+  <line x1="65" y1="98" x2="92" y2="100" stroke="#ffffff" stroke-width="1.5" opacity="0.7"/>
+  <line x1="108" y1="100" x2="135" y2="98" stroke="#ffffff" stroke-width="1.5" opacity="0.7"/>
+
+  <!-- Text -->
+  <text x="100" y="165" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#818cf8">AGENT-COREX</text>
+</svg>

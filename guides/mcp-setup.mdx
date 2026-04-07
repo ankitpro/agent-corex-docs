@@ -1,0 +1,165 @@
+---
+title: 'Setup MCP Servers: Complete Guide'
+description: 'Connect MCP servers like GitHub, Slack, Jira, and Terraform to Agent-CoreX. Platform-specific setup for Windows, macOS, and Linux.'
+---
+
+## Setup MCP Servers
+
+Connect your favorite tools to Agent-CoreX with our step-by-step MCP setup guides.
+
+### Quick Setup (5 minutes)
+
+1. Go to [Dashboard → MCP Servers](https://www.agent-corex.com/dashboard/mcp-servers)
+2. Browse the marketplace
+3. Click "Connect" on any server
+4. Authenticate with required credentials
+5. Done! Tools available immediately
+
+### Platform-Specific Setup
+
+#### Windows Setup
+
+```bash
+# 1. Install Agent-CoreX CLI
+npm install -g agent-corex-cli
+
+# 2. Initialize
+agent-corex init
+
+# 3. Connect a server
+agent-corex mcp connect github
+# Enter your GitHub Personal Access Token
+
+# 4. Verify
+agent-corex mcp list
+```
+
+#### macOS Setup
+
+```bash
+# 1. Using Homebrew
+brew install agent-corex
+
+# 2. Or using npm
+npm install -g agent-corex-cli
+
+# 3. Initialize
+agent-corex init
+
+# 4. Connect server
+agent-corex mcp connect github
+
+# 5. Verify
+agent-corex mcp list
+```
+
+#### Linux Setup
+
+```bash
+# 1. Using apt (Ubuntu/Debian)
+sudo apt-get install agent-corex
+
+# 2. Or using npm
+npm install -g agent-corex-cli
+
+# 3. Initialize
+agent-corex init
+
+# 4. Connect server
+agent-corex mcp connect github
+
+# 5. Verify
+agent-corex mcp list
+```
+
+### Connect Popular Servers
+
+#### GitHub
+
+**Token Generation:**
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click "Generate new token (classic)"
+3. Select scopes: `repo`, `read:user`, `admin:org_hook`
+4. Copy token
+
+**In Agent-CoreX:**
+```bash
+agent-corex mcp connect github
+# Paste your token when prompted
+```
+
+#### Slack
+
+**Token Generation:**
+1. Go to [api.slack.com/apps](https://api.slack.com/apps)
+2. Create new app
+3. Go to "OAuth & Permissions"
+4. Copy "Bot User OAuth Token"
+
+**In Agent-CoreX:**
+```bash
+agent-corex mcp connect slack
+# Paste your token
+```
+
+#### Jira
+
+**Token Generation:**
+1. Go to [id.atlassian.com](https://id.atlassian.com)
+2. Create API token
+3. Copy token
+
+**In Agent-CoreX:**
+```bash
+agent-corex mcp connect jira
+# Enter instance URL and token
+```
+
+#### Terraform
+
+**Setup:**
+```bash
+agent-corex mcp connect terraform
+
+# For Terraform Cloud:
+# Enter your Terraform Cloud token
+```
+
+### Verify Connection
+
+```bash
+# List all connected servers
+agent-corex mcp list
+
+# Output:
+# ✓ github-mcp        (25 tools) - HEALTHY
+# ✓ slack-mcp         (18 tools) - HEALTHY
+# ✓ jira-mcp          (22 tools) - HEALTHY
+# ✓ terraform-mcp     (15 tools) - HEALTHY
+
+# Test a specific server
+agent-corex mcp test github-mcp
+```
+
+### Troubleshooting
+
+<Accordion title="Connection failed">
+1. Verify token is valid
+2. Check scopes are correct
+3. Try regenerating token
+4. Check network connection
+</Accordion>
+
+<Accordion title="Tools not appearing">
+1. Refresh: `agent-corex mcp list`
+2. Check server status: `agent-corex mcp status`
+3. Resync: `agent-corex mcp resync github-mcp`
+</Accordion>
+
+<Accordion title="Rate limited">
+Each service has limits. Upgrade your plan for higher limits.
+</Accordion>
+
+---
+
+**Next Step:** [Reduce Token Usage →](/guides/reduce-token-usage)

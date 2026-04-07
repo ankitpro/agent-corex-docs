@@ -1,0 +1,251 @@
+---
+title: 'Authentication Methods & Security'
+description: 'Complete guide to Agent-CoreX authentication. API keys, OAuth, and security best practices.'
+---
+
+## Authentication & Security
+
+Learn how to authenticate with Agent-CoreX and secure your implementation.
+
+### Authentication Methods
+
+Agent-CoreX supports multiple authentication methods:
+
+| Method | Use Case | Security |
+|--------|----------|----------|
+| **API Key** | SDKs, backends | High |
+| **OAuth** | Web apps, user context | Very High |
+| **JWT** | Service-to-service | High |
+| **Webhook Signing** | Event verification | High |
+
+### API Key Authentication
+
+#### Recommended: Header-based
+
+```javascript
+// JavaScript
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+// cURL
+curl -H "Authorization: Bearer acx_live_xxx" \
+  https://api.agent-corex.com/v1/retrieve_tools
+```
+
+#### Alternative: Query parameter
+
+```bash
+curl "https://api.agent-corex.com/v1/retrieve_tools?api_key=acx_live_xxx"
+```
+
+### OAuth Authentication
+
+For web applications handling user requests:
+
+```javascript
+// 1. User clicks "Connect Agent-CoreX"
+const authUrl = `https://auth.agent-corex.com/authorize?
+client_id=YOUR_CLIENT_ID&
+redirect_uri=https://yourapp.com/callback&
+scope=read:tools,execute:tools`;
+
+// 2. User grants permission
+// 3. Receive authorization code
+
+// 4. Exchange for access token
+const response = await fetch('https://auth.agent-corex.com/token', {
+  method: 'POST',
+  body: JSON.stringify({
+    grant_type: 'authorization_code',
+    code: authCode,
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    redirect_uri: REDIRECT_URI
+  })
+});
+
+const { access_token } = await response.json();
+
+// 5. Use access token
+const agent = new AgentCorex({
+  accessToken: access_token
+});
+```
+
+### JWT Authentication
+
+For service-to-service communication:
+
+```javascript
+import jwt from 'jsonwebtoken';
+
+// 1. Create JWT
+const token = jwt.sign(
+  {
+    sub: 'service-id',
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 3600
+  },
+  process.env.JWT_SECRET,
+  { algorithm: 'HS256' }
+);
+
+// 2. Use in requests
+fetch('https://api.agent-corex.com/v1/retrieve_tools', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+```
+
+### Webhook Signing
+
+Verify webhook authenticity:
+
+```javascript
+// Verify webhook signature
+import crypto from 'crypto';
+
+function verifyWebhookSignature(payload, signature) {
+  const expectedSig = crypto
+    .createHmac('sha256', process.env.WEBHOOK_SECRET)
+    .update(payload)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSig)
+  );
+}
+
+// In webhook handler
+app.post('/webhook', (req, res) => {
+  const signature = req.headers['x-agent-corex-signature'];
+  const payload = JSON.stringify(req.body);
+
+  if (!verifyWebhookSignature(payload, signature)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  // Process webhook
+  res.json({ ok: true });
+});
+```
+
+### Security Best Practices
+
+#### 1. Key Rotation
+
+```bash
+# Every month:
+1. Generate new API key
+2. Update all systems with new key
+3. Test thoroughly
+4. Revoke old key
+```
+
+#### 2. Least Privilege
+
+```javascript
+// ❌ Don't: One key for everything
+const adminKey = 'acx_live_full_access';
+
+// ✅ Do: Different keys for different scopes
+const deploymentKey = 'acx_live_deploy_only';
+const readKey = 'acx_live_read_only';
+```
+
+#### 3. Environment Separation
+
+```bash
+# Development
+AGENT_COREX_API_KEY=acx_test_dev_xxx
+
+# Staging
+AGENT_COREX_API_KEY=acx_test_staging_xxx
+
+# Production
+AGENT_COREX_API_KEY=acx_live_prod_xxx
+```
+
+#### 4. Rate Limiting
+
+```javascript
+import RateLimit from 'express-rate-limit';
+
+const limiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests, please try again later.'
+});
+
+app.use(limiter);
+```
+
+#### 5. HTTPS Only
+
+```javascript
+// ❌ Never use HTTP
+// http://api.agent-corex.com/retrieve_tools
+
+// ✅ Always use HTTPS
+// https://api.agent-corex.com/retrieve_tools
+```
+
+### Error Handling
+
+#### Unauthorized (401)
+
+```javascript
+try {
+  const tools = await agent.retrieveTools({
+    query: "Deploy"
+  });
+} catch (error) {
+  if (error.status === 401) {
+    // API key invalid or expired
+    // Regenerate key and update code
+  }
+}
+```
+
+#### Forbidden (403)
+
+```javascript
+catch (error) {
+  if (error.status === 403) {
+    // Permission denied (quota exceeded, etc)
+    // Check your usage limits
+  }
+}
+```
+
+### Security Checklist
+
+- ✅ Use HTTPS always
+- ✅ Store keys in environment variables
+- ✅ Rotate keys monthly
+- ✅ Use different keys per environment
+- ✅ Monitor API usage
+- ✅ Verify webhook signatures
+- ✅ Implement rate limiting
+- ✅ Use least privilege principle
+- ✅ Enable audit logging
+- ✅ Never commit keys to git
+
+### Compliance
+
+Agent-CoreX complies with:
+- **SOC 2 Type II** - Security and availability
+- **GDPR** - Data privacy in EU
+- **HIPAA** - Healthcare data handling
+- **ISO 27001** - Information security management
+
+### Support
+
+Security questions? Email: security@agent-corex.com
+
+---
+
+**Next Step:** [Back to Guides →](/guides/getting-started)

@@ -20,18 +20,30 @@
   },
   "topbarLinks": [
     {
+      "name": "Home",
+      "url": "https://www.agent-corex.com"
+    },
+    {
+      "name": "Dashboard",
+      "url": "https://www.agent-corex.com/dashboard"
+    },
+    {
       "name": "Support",
       "url": "https://github.com/ankitpro/agent-corex/issues"
     }
   ],
   "topbarCtaButton": {
-    "name": "Get Started",
-    "url": "https://www.agent-corex.com/signup"
+    "name": "Sign In",
+    "url": "https://www.agent-corex.com/login"
   },
   "tabs": [
     {
       "name": "API Reference",
       "url": "api-reference"
+    },
+    {
+      "name": "Guides",
+      "url": "guides"
     },
     {
       "name": "Examples",
@@ -43,6 +55,16 @@
       "name": "GitHub",
       "icon": "github",
       "url": "https://github.com/ankitpro/agent-corex"
+    },
+    {
+      "name": "Twitter",
+      "icon": "twitter",
+      "url": "https://twitter.com/ankitko0l"
+    },
+    {
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://slack.agent-corex.com"
     }
   ],
   "navigation": [
@@ -96,6 +118,16 @@
         "api-reference/get-tool",
         "api-reference/execute-tool",
         "api-reference/openapi"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/getting-started",
+        "guides/create-api-key",
+        "guides/mcp-setup",
+        "guides/reduce-token-usage",
+        "guides/authentication"
       ]
     },
     {

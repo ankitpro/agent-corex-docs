@@ -1,0 +1,254 @@
+---
+title: 'Create and Manage API Keys'
+description: 'Learn how to create, secure, and manage API keys for Agent-CoreX. Best practices for API key security.'
+---
+
+## Create and Manage API Keys
+
+Your API key is your gateway to Agent-CoreX. Learn how to create, secure, and manage it properly.
+
+### Creating Your First API Key
+
+1. **Go to Settings**
+   - Open [Dashboard](https://www.agent-corex.com/dashboard)
+   - Click **Settings** in the left sidebar
+   - Select **API Keys**
+
+2. **Create New Key**
+   - Click **"+ Create New Key"**
+   - Give it a meaningful name (e.g., "Production", "Development", "Testing")
+
+3. **Select Tier**
+   - **Free**: 1,000 requests/month, $0/month
+   - **Pro**: 100,000 requests/month, $29/month
+   - **Enterprise**: Custom limits, contact sales
+
+4. **Save the Key**
+   - Copy immediately - **it won't be shown again**
+   - Store securely in your password manager or `.env` file
+
+---
+
+## Key Format
+
+Your API keys always start with a prefix indicating their type:
+
+- `acx_live_` - Production keys
+- `acx_test_` - Testing keys
+- `acx_dev_` - Development keys
+
+Example: `acx_live_1a2b3c4d5e6f7g8h9i0j`
+
+---
+
+## Securing Your API Key
+
+### ✅ DO:
+
+- Store in environment variables: `AGENT_COREX_API_KEY`
+- Use `.env` files (add to `.gitignore`)
+- Rotate keys regularly (every 3 months)
+- Use different keys for different environments
+- Monitor API usage in your dashboard
+
+### ❌ DON'T:
+
+- Commit keys to git repositories
+- Share keys in Slack/email/documents
+- Use the same key for multiple environments
+- Hardcode keys in source code
+- Log keys in error messages
+
+---
+
+## Environment Variable Setup
+
+### macOS/Linux
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export AGENT_COREX_API_KEY="acx_live_xxx"
+
+# Or use .env file
+echo "AGENT_COREX_API_KEY=acx_live_xxx" > .env
+source .env
+```
+
+### Windows
+
+```bash
+# PowerShell
+$env:AGENT_COREX_API_KEY = "acx_live_xxx"
+
+# Or set permanently
+[Environment]::SetEnvironmentVariable("AGENT_COREX_API_KEY", "acx_live_xxx", "User")
+```
+
+### Node.js (.env file)
+
+```bash
+# .env
+AGENT_COREX_API_KEY=acx_live_xxx
+AGENT_COREX_API_URL=https://api.agent-corex.com
+```
+
+```javascript
+require('dotenv').config();
+const apiKey = process.env.AGENT_COREX_API_KEY;
+```
+
+### Python
+
+```bash
+# .env
+AGENT_COREX_API_KEY=acx_live_xxx
+```
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.getenv('AGENT_COREX_API_KEY')
+```
+
+---
+
+## Using Your API Key
+
+### With SDKs
+
+```javascript
+import { AgentCorex } from 'agent-corex';
+
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+```
+
+### With cURL
+
+```bash
+curl -H "Authorization: Bearer $AGENT_COREX_API_KEY" \
+  https://api.agent-corex.com/v1/retrieve_tools
+```
+
+### With Environment Variable in Commands
+
+```bash
+# Linux/macOS
+API_KEY=$(echo $AGENT_COREX_API_KEY)
+curl -H "Authorization: Bearer $API_KEY" \
+  https://api.agent-corex.com/v1/retrieve_tools
+
+# Windows PowerShell
+$apiKey = $env:AGENT_COREX_API_KEY
+curl -H "Authorization: Bearer $apiKey" `
+  https://api.agent-corex.com/v1/retrieve_tools
+```
+
+---
+
+## Key Rotation
+
+### Rotate Keys Monthly
+
+1. **Create new key** in your dashboard
+2. **Update code** with new key
+3. **Test thoroughly** to ensure it works
+4. **Revoke old key** after 7 days
+5. **Confirm all systems** using new key
+
+### Revoke a Key
+
+1. Go to **Settings → API Keys**
+2. Find the key to revoke
+3. Click **"Revoke"**
+4. Confirm the action
+5. All requests with that key will fail
+
+---
+
+## Monitoring Key Usage
+
+### View API Metrics
+
+- **Settings → Usage**
+- See requests/month
+- Track by key
+- View trending usage
+
+### Set Usage Alerts
+
+- **Settings → Alerts**
+- Alert when reaching 80% limit
+- Alert on failed requests
+- Email notifications
+
+---
+
+## Troubleshooting
+
+<Accordion title="I lost my API key">
+Generate a new one immediately:
+1. Go to Settings → API Keys
+2. Click "Create New Key"
+3. Revoke the old key
+4. Update all your code with the new key
+</Accordion>
+
+<Accordion title="API key not working in my code">
+Common issues:
+- Make sure it starts with `acx_live_`
+- Check it hasn't expired
+- Verify the environment variable is set
+- Try using a fresh key
+- Check API status at status.agent-corex.com
+</Accordion>
+
+<Accordion title="Can I use the same key for multiple apps?">
+Yes, but we recommend using different keys:
+- Better security (revoke one without affecting others)
+- Better monitoring (see which app uses how much)
+- Better rate limiting (each key has its own limit)
+</Accordion>
+
+<Accordion title="How often should I rotate keys?">
+We recommend:
+- **Production**: Monthly
+- **Development**: Every 3 months
+- **Testing**: No rotation needed
+- **After team member leaves**: Immediately
+</Accordion>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card
+    title="Security Checklist"
+    icon="shield"
+  >
+    ✅ Use environment variables
+    ✅ Add .env to .gitignore
+    ✅ Rotate monthly
+    ✅ Monitor usage
+    ✅ Different keys per env
+  </Card>
+
+  <Card
+    title="Development Tips"
+    icon="code"
+  >
+    ✅ Use test keys in dev
+    ✅ Use live keys in prod
+    ✅ Log API calls
+    ✅ Implement retry logic
+    ✅ Handle 401 errors
+  </Card>
+</CardGroup>
+
+---
+
+**Next Step:** [Setup MCP Servers →](/guides/mcp-setup)

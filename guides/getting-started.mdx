@@ -1,0 +1,265 @@
+---
+title: 'Getting Started with Agent-CoreX'
+description: 'Set up Agent-CoreX in under 2 hours. Create your account, generate an API key, install the SDK, and start cutting LLM costs by 30–70%.'
+---
+
+## Getting Started with Agent-CoreX
+
+Agent-CoreX is a tool router for AI agents. Instead of sending your agent every available tool on every request, Agent-CoreX dynamically selects only the tools actually needed — cutting LLM costs by **30–70%** and improving accuracy.
+
+### What is Agent-CoreX?
+
+Agent-CoreX sits between your AI agent and your tools. When your agent needs a tool, it queries Agent-CoreX with a natural-language description. Agent-CoreX returns only the most relevant tools — preventing token bloat caused by passing hundreds of tool schemas in every LLM call.
+
+**Key Benefits:**
+
+- **60% avg cost reduction** - By routing only the tools your agent needs, you stop wasting tokens on irrelevant schemas
+- **API-key authentication** - Keys start with `acx_` and are hashed before storage — never stored in plaintext
+- **MCP-native** - Connect VS Code, Cursor, Claude Code, Windsurf, and more via a single SSE endpoint
+
+### Prerequisites
+
+Before you begin, ensure you have:
+- A GitHub account (for signing up)
+- Node.js 16+ installed (for SDK usage)
+- A text editor or IDE
+- 15 minutes of free time
+
+---
+
+## Step 1: Create Your Account
+
+1. Visit [www.agent-corex.com/signup](https://www.agent-corex.com/signup)
+2. Sign up with GitHub, Google, or email
+3. Verify your email address
+4. Accept the terms and conditions
+5. Click "Get Started"
+
+You'll be redirected to your dashboard where you can create API keys, connect tools, and monitor usage.
+
+---
+
+## Step 2: Create an API Key
+
+1. Go to **Dashboard → Settings → API Keys**
+2. Click **"Create New Key"**
+3. Name your key (e.g., "Production", "Development")
+4. Select the appropriate tier:
+   - **Free**: 1,000 requests/month
+   - **Pro**: 100,000 requests/month
+   - **Enterprise**: Custom limits
+5. Click **"Create"**
+6. **Copy and save your key securely** - it won't be shown again!
+
+Your API key will look like: `acx_live_1a2b3c4d5e6f7g8h9i0j`
+
+### Store Your Key Safely
+
+**Option 1: Environment Variable**
+```bash
+export AGENT_COREX_API_KEY="acx_live_xxx"
+```
+
+**Option 2: .env File**
+```
+AGENT_COREX_API_KEY=acx_live_xxx
+```
+
+**Option 3: Configuration File**
+```javascript
+const apiKey = process.env.AGENT_COREX_API_KEY;
+```
+
+---
+
+## Step 3: Install the SDK
+
+Choose your language and install the SDK:
+
+### JavaScript/TypeScript
+
+```bash
+npm install agent-corex
+```
+
+### Python
+
+```bash
+pip install agent-corex
+```
+
+### Go
+
+```bash
+go get github.com/ankitpro/agent-corex-go
+```
+
+---
+
+## Step 4: Make Your First Call
+
+### JavaScript
+
+```javascript
+import { AgentCorex } from 'agent-corex';
+
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+// Retrieve tools
+const tools = await agent.retrieveTools({
+  query: "Create a GitHub pull request",
+  topK: 5
+});
+
+console.log('Available tools:', tools);
+// Output: [
+//   { name: 'create-pull-request', score: 0.98 },
+//   { name: 'create-github-issue', score: 0.78 },
+//   ...
+// ]
+
+// Execute a tool
+const result = await agent.executeTool({
+  toolName: 'create-pull-request',
+  params: {
+    repository: 'owner/repo',
+    title: 'My first automated PR',
+    from_branch: 'feature/x',
+    to_branch: 'main'
+  }
+});
+
+console.log('PR created:', result.pr_url);
+```
+
+### Python
+
+```python
+from agent_corex import AgentCorex
+
+agent = AgentCorex(api_key="acx_live_xxx")
+
+# Retrieve tools
+tools = agent.retrieve_tools(
+    query="Create a GitHub pull request",
+    top_k=5
+)
+
+print("Available tools:", tools)
+
+# Execute a tool
+result = agent.execute_tool(
+    tool_name="create-pull-request",
+    params={
+        "repository": "owner/repo",
+        "title": "My first automated PR",
+        "from_branch": "feature/x",
+        "to_branch": "main"
+    }
+)
+
+print("PR created:", result['pr_url'])
+```
+
+### cURL
+
+```bash
+# Retrieve tools
+curl -X POST "https://api.agent-corex.com/v1/retrieve_tools" \
+  -H "Authorization: Bearer acx_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Create a GitHub pull request",
+    "top_k": 5
+  }'
+
+# Execute tool
+curl -X POST "https://api.agent-corex.com/v1/execute_tool" \
+  -H "Authorization: Bearer acx_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_name": "create-pull-request",
+    "params": {
+      "repository": "owner/repo",
+      "title": "My first automated PR",
+      "from_branch": "feature/x",
+      "to_branch": "main"
+    }
+  }'
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Create Your API Key"
+    href="/guides/create-api-key"
+    icon="key"
+  >
+    Detailed guide to securing your API key.
+  </Card>
+
+  <Card
+    title="Setup MCP Servers"
+    href="/guides/mcp-setup"
+    icon="server"
+  >
+    Connect GitHub, Slack, Jira, and more.
+  </Card>
+
+  <Card
+    title="Reduce Token Usage"
+    href="/guides/reduce-token-usage"
+    icon="zap"
+  >
+    Optimize costs with smart tool routing.
+  </Card>
+
+  <Card
+    title="Dashboard Guide"
+    href="https://www.agent-corex.com/dashboard"
+    icon="layout"
+  >
+    Explore your dashboard features.
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<Accordion title="API key not working?">
+1. Make sure you're using the correct key format: `acx_live_xxx`
+2. Check that the key hasn't expired (30 days for trial keys)
+3. Verify the environment variable is set: `echo $AGENT_COREX_API_KEY`
+4. Try regenerating the key in your dashboard
+</Accordion>
+
+<Accordion title="Module not found error?">
+Make sure you installed the SDK:
+```bash
+npm install agent-corex  # JavaScript
+pip install agent-corex  # Python
+```
+</Accordion>
+
+<Accordion title="Connection timeout?">
+This usually means:
+- Your internet connection is unstable
+- The API server is temporarily unavailable
+- Try again in a few seconds
+</Accordion>
+
+<Accordion title="Want to see more examples?">
+Check out [Real-World Workflows](/examples/real-world-workflows) for complete, copy-paste ready examples.
+</Accordion>
+
+---
+
+**Congratulations!** You've successfully set up Agent-CoreX. You're now ready to start automating with intelligent tool routing. 🚀
+
+**Next:** [Connect your first MCP server →](/guides/mcp-setup)
