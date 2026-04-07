@@ -1,0 +1,96 @@
+name: Deploy & Index to Search Engines
+
+on:
+  push:
+    branches: [prod, main]
+  workflow_dispatch:
+
+env:
+  MINTLIFY_PREVIEW_URL: https://docs.agent-corex.com
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Generate Sitemap
+        run: npx tsx scripts/sitemap.ts
+        continue-on-error: true
+
+      - name: Submit to IndexNow
+        run: npx tsx scripts/indexnow.ts
+        env:
+          INDEXNOW_KEY_DOCS: ${{ secrets.INDEXNOW_KEY_DOCS }}
+        continue-on-error: true
+
+      - name: Trigger Mintlify Deployment
+        run: |
+          if [ ! -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+            echo "Deployment triggered on Render"
+          else
+            echo "No deployment hook configured"
+          fi
+        continue-on-error: true
+
+      - name: Deploy to Vercel (Alternative)
+        if: always()
+        run: |
+          if [ ! -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            npm install -g vercel
+            vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }}
+            echo "Deployment triggered on Vercel"
+          else
+            echo "No Vercel token configured"
+          fi
+        continue-on-error: true
+
+      - name: Verify Sitemap
+        run: |
+          if [ -f "public/sitemap.xml" ]; then
+            echo "✓ Sitemap generated successfully"
+            wc -l public/sitemap.xml
+          else
+            echo "✗ Sitemap not found"
+            exit 1
+          fi
+
+      - name: Verify IndexNow Key
+        run: |
+          if [ -f "public/397aa3994dcb997f37972d70951d2e82.txt" ]; then
+            echo "✓ IndexNow key file verified"
+            cat public/397aa3994dcb997f37972d70951d2e82.txt
+          else
+            echo "✗ IndexNow key file not found"
+            exit 1
+          fi
+
+  post-deployment:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: always()
+
+    steps:
+      - name: Notify Slack (Optional)
+        if: failure()
+        run: |
+          if [ ! -z "${{ secrets.SLACK_WEBHOOK }}" ]; then
+            curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+              -H 'Content-Type: application/json' \
+              -d '{"text":"❌ docs.agent-corex.com deployment or indexing failed"}'
+          fi
+        continue-on-error: true
+
+      - name: Notify on Success
+        if: success()
+        run: |
+          echo "✓ All deployment and indexing steps completed successfully"
+          echo "Documentation is live at: https://docs.agent-corex.com"
