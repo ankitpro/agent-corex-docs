@@ -1,0 +1,486 @@
+---
+title: 'Setup MCP Servers for Developers'
+description: 'Connect MCP servers to Agent-CoreX. Guide for setting up MCP servers in VS Code, Claude Code, and other platforms.'
+---
+
+## Setting Up MCP Servers
+
+Learn how to connect **MCP servers for developers** to Agent-CoreX. Once connected, your agent instantly gains access to 100+ powerful tools.
+
+---
+
+## Quick Start: Connect Your First Server
+
+### Step 1: Go to Dashboard
+
+1. Open [dashboard.agent-corex.com](https://dashboard.agent-corex.com)
+2. Click "MCP Servers" in the sidebar
+3. Click "Browse Marketplace"
+
+### Step 2: Find a Server
+
+Search for the service you want (GitHub, Slack, Jira, etc.):
+
+```
+Search: "github"
+↓
+Results:
+- GitHub (Official)
+- GitHub CLI Wrapper
+- GitHub Enterprise
+```
+
+### Step 3: Click "Connect"
+
+```
+GitHub (Official)
+Description: Create PRs, manage issues, deploy, etc.
+Tools: 25 tools available
+Rating: ⭐⭐⭐⭐⭐ (4.9/5 from 1,245 users)
+
+[CONNECT]  [PREVIEW]  [DETAILS]
+```
+
+### Step 4: Authenticate
+
+Each MCP server requires different authentication:
+
+**GitHub:**
+```
+┌──────────────────────────────────────┐
+│ GitHub Personal Access Token         │
+├──────────────────────────────────────┤
+│ Scopes:                              │
+│ ☑ repo (full control)                │
+│ ☑ read:user (user info)              │
+│ ☑ admin:org_hook (webhooks)          │
+│                                      │
+│ Paste your token: [_______________]  │
+│                                      │
+│              [CONNECT]               │
+└──────────────────────────────────────┘
+```
+
+**Get a GitHub Token:**
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click "Generate new token (classic)"
+3. Select required scopes
+4. Copy and paste into Agent-CoreX
+
+### Step 5: Done!
+
+```
+✅ GitHub connected successfully
+   25 tools available
+   Last synced: just now
+```
+
+Your agent can now access all GitHub tools!
+
+---
+
+## MCP Servers for Developers: Setup Guide
+
+### GitHub Setup
+
+**Authentication:** Personal Access Token (PAT)
+
+```bash
+# Generate token
+gh auth login
+
+# Create token at: github.com/settings/tokens
+# Scopes: repo, read:user, admin:org_hook
+```
+
+**After Connection:**
+- ✅ 25 tools available
+- ✅ All repositories accessible
+- ✅ CI/CD workflows supported
+
+### Slack Setup
+
+**Authentication:** OAuth Token or Bot Token
+
+```
+1. Go to https://api.slack.com/apps
+2. Create New App
+3. Go to "OAuth & Permissions"
+4. Copy "Bot User OAuth Token"
+5. Paste into Agent-CoreX
+```
+
+**After Connection:**
+- ✅ Send messages to channels
+- ✅ Create channels and threads
+- ✅ Update user profiles
+- ✅ Manage reactions
+
+### Jira Setup
+
+**Authentication:** API Token
+
+```bash
+# Generate at: https://id.atlassian.com/manage-profile/security/api-tokens
+# Create token → Copy → Paste into Agent-CoreX
+```
+
+**Configuration:**
+```
+Jira Instance: https://your-company.atlassian.net
+Email: your-email@company.com
+API Token: [paste here]
+```
+
+### Terraform Setup
+
+**Authentication:** None required initially
+
+```bash
+# Agent-CoreX can use local Terraform installation
+# Or connect to Terraform Cloud for remote state
+
+Option 1: Local Terraform
+- No authentication
+- Runs terraform commands locally
+
+Option 2: Terraform Cloud
+- API Token from: app.terraform.io/app/settings/tokens
+- Enables remote state management
+```
+
+---
+
+## MCP Servers in VS Code
+
+If using Agent-CoreX via VS Code extension:
+
+### Install MCP Server Extension
+
+1. Open VS Code
+2. Go to Extensions → Search "agent-corex"
+3. Click "Install"
+4. VS Code restarts
+
+### Connect Servers
+
+```
+VS Code → Agent-CoreX Icon → MCP Servers → Connect
+```
+
+### Same authentication as web dashboard
+
+All servers you connect on the web dashboard are available in VS Code.
+
+---
+
+## MCP Servers for Claude Code
+
+If using Agent-CoreX CLI (Claude Code):
+
+### Installation
+
+```bash
+npm install -g agent-corex-cli
+agent-corex auth login
+```
+
+### Connect Servers
+
+```bash
+agent-corex mcp connect github
+# Prompts for GitHub PAT
+# Saves to ~/.agent-corex/config.json
+```
+
+### List Connected Servers
+
+```bash
+agent-corex mcp list
+```
+
+**Output:**
+```
+Connected MCP Servers:
+✓ github-mcp        (25 tools)
+✓ slack-mcp         (18 tools)
+✓ jira-mcp          (22 tools)
+✗ terraform-mcp     (error: no token)
+```
+
+---
+
+## MCP Servers in Copilot
+
+For GitHub Copilot integration:
+
+### Step 1: Enable Integration
+
+```
+Copilot Settings → Extensions → Agent-CoreX → Enable
+```
+
+### Step 2: Configure
+
+```
+GitHub Account Settings → Developer settings → Personal access tokens
+→ Create token with appropriate scopes
+```
+
+### Step 3: Use in Copilot
+
+```
+@agent-corex retrieve tools for: "Create a pull request"
+→ Copilot shows available tools from Agent-CoreX
+```
+
+---
+
+## Custom MCP Servers
+
+You can create and connect custom MCP servers.
+
+### Example: Custom Database Tool
+
+```javascript
+// custom-db-mcp.js
+import { MCPServer } from 'agent-corex-sdk';
+
+const server = new MCPServer({
+  name: 'custom-db-mcp',
+  version: '1.0.0',
+  description: 'Custom database tools'
+});
+
+server.addTool({
+  name: 'query-database',
+  description: 'Execute SQL queries against company database',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'SQL query' },
+      database: { type: 'string', description: 'Database name' }
+    },
+    required: ['query', 'database']
+  },
+  async execute(params) {
+    const result = await executeQuery(params.query, params.database);
+    return { success: true, rows: result };
+  }
+});
+
+server.addTool({
+  name: 'backup-database',
+  description: 'Create backup of database',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      database: { type: 'string' }
+    },
+    required: ['database']
+  },
+  async execute(params) {
+    const backupId = await createBackup(params.database);
+    return { success: true, backup_id: backupId };
+  }
+});
+
+server.start(3000);
+```
+
+### Register Custom Server
+
+```bash
+agent-corex mcp register \
+  --name "custom-db-mcp" \
+  --url "http://localhost:3000"
+```
+
+### Verify
+
+```bash
+agent-corex mcp list
+# custom-db-mcp should appear in the list
+```
+
+---
+
+## Server Status & Monitoring
+
+### Dashboard View
+
+Go to [dashboard.agent-corex.com/servers](https://dashboard.agent-corex.com/servers):
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Connected MCP Servers                               │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│ GitHub                            ✅ CONNECTED     │
+│ Status: Healthy                                     │
+│ Tools: 25                          Last check: 30s │
+│ Uptime: 99.98%                                      │
+│                                                     │
+│ Slack                             ✅ CONNECTED     │
+│ Status: Healthy                                     │
+│ Tools: 18                          Last check: 2m  │
+│ Uptime: 99.95%                                      │
+│                                                     │
+│ Jira                              ✅ CONNECTED     │
+│ Status: Degraded (2/3 tools working)               │
+│ Tools: 22                          Last check: 5m  │
+│ Uptime: 98.5%                                       │
+│                                                     │
+│ Terraform                         ❌ DISCONNECTED  │
+│ Status: Error - Invalid token                      │
+│ Tools: 0                           Last check: 1h  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+### CLI View
+
+```bash
+agent-corex mcp status
+```
+
+---
+
+## Troubleshooting
+
+<Accordion title="Connection failed - invalid token">
+1. Verify token has not expired
+2. Check scopes are correct
+3. Try generating a new token
+4. Re-connect in dashboard
+</Accordion>
+
+<Accordion title="Tools not appearing">
+1. Refresh the page or restart CLI
+2. Check "Last synced" time in dashboard
+3. Click "Resync" button manually
+4. Check server status (should be green)
+</Accordion>
+
+<Accordion title="Server showing as disconnected">
+1. Click the server card
+2. Go to "Connection Settings"
+3. Re-enter credentials
+4. Click "Test Connection"
+5. If still failing, check your internet connection
+</Accordion>
+
+<Accordion title="Rate limit exceeded">
+Different services have different rate limits:
+- GitHub: 5,000 requests/hour
+- Slack: 2 requests/second
+- Jira: Varies by plan
+
+Agent-CoreX handles retry logic, but you may need to wait or upgrade your plan.
+</Accordion>
+
+---
+
+## Best Practices
+
+### 1. Use Scoped Tokens
+
+```bash
+# ❌ Bad: Too permissive
+Personal Token: "ghp_xxx" (repo, admin, delete)
+
+# ✅ Good: Minimal permissions
+Personal Token: "ghp_yyy" (repo, read:user only)
+```
+
+### 2. Rotate Tokens Regularly
+
+```
+Set reminder to rotate tokens every 90 days
+```
+
+### 3. Monitor Usage
+
+```bash
+# Check API usage in dashboard
+Dashboard → Servers → GitHub → Usage Stats
+```
+
+### 4. Test Before Production
+
+```bash
+# Test in development workspace first
+agent-corex workspace create dev
+agent-corex mcp connect github  # Dev token
+# Test workflows...
+# Then connect production token
+```
+
+---
+
+## Integration Examples
+
+### GitHub + Slack
+
+```javascript
+const tools = await agent.retrieveTools({
+  query: "Create GitHub PR and notify Slack"
+});
+// Gets both GitHub and Slack tools in one query
+```
+
+### Jira + GitHub + Slack
+
+```javascript
+const tools = await agent.retrieveTools({
+  query: "Create Jira issue, create GitHub issue, notify team on Slack"
+});
+// All three servers' tools are available
+```
+
+### Custom DB + Slack
+
+```javascript
+const tools = await agent.retrieveTools({
+  query: "Backup database and notify admins"
+});
+// Gets custom-db-mcp tools and Slack tools
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="MCP Concepts"
+    href="/mcp/what-is-mcp"
+  >
+    Understand the Model Context Protocol.
+  </Card>
+
+  <Card
+    title="Example: Filesystem MCP"
+    href="/mcp/example-filesystem"
+  >
+    Create your first custom MCP server.
+  </Card>
+
+  <Card
+    title="GitHub Automation"
+    href="/use-cases/github-automation"
+  >
+    Use GitHub MCP for real workflows.
+  </Card>
+
+  <Card
+    title="Dashboard"
+    href="https://dashboard.agent-corex.com"
+  >
+    Manage your servers.
+  </Card>
+</CardGroup>
+
+---
+
+**Ready to connect?** Start with [GitHub MCP](https://dashboard.agent-corex.com/servers/github) and try your first automation! 🚀

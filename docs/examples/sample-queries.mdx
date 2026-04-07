@@ -1,0 +1,587 @@
+---
+title: 'Real-World Sample Queries'
+description: 'Real-world examples of natural language queries and the tools Agent-CoreX recommends.'
+---
+
+## Real-World Sample Queries
+
+This page shows actual queries users make and what tools Agent-CoreX returns.
+
+---
+
+## Query 1: Simple GitHub Workflow
+
+### User Query
+```
+"Create a pull request on GitHub"
+```
+
+### What Agent-CoreX Returns
+
+```json
+[
+  {
+    "name": "create-pull-request",
+    "server": "github-mcp",
+    "score": 0.99,
+    "description": "Create a new PR with title, body, and branch info"
+  },
+  {
+    "name": "create-github-issue",
+    "server": "github-mcp",
+    "score": 0.78,
+    "description": "Create an issue (similar intent, different action)"
+  },
+  {
+    "name": "create-jira-issue",
+    "server": "jira-mcp",
+    "score": 0.52,
+    "description": "Create Jira issue (different platform)"
+  }
+]
+```
+
+### Implementation
+
+```javascript
+const tools = await agent.retrieveTools({
+  query: "Create a pull request on GitHub"
+});
+
+const prTool = tools[0];
+
+const result = await agent.executeTool({
+  toolName: prTool.name,
+  params: {
+    repository: "owner/repo",
+    title: "Add new feature",
+    from_branch: "feature/new",
+    to_branch: "main",
+    body: "This PR adds a new feature"
+  }
+});
+
+console.log(`✅ PR created: ${result.pr_url}`);
+```
+
+---
+
+## Query 2: Multi-Tool Workflow
+
+### User Query
+```
+"I need to deploy my Node.js app to AWS, run tests first, and notify the team"
+```
+
+### What Agent-CoreX Returns
+
+```json
+[
+  {
+    "name": "run-test-suite",
+    "score": 0.94,
+    "server": "ci-cd-mcp"
+  },
+  {
+    "name": "deploy-aws-lambda",
+    "score": 0.92,
+    "server": "aws-mcp"
+  },
+  {
+    "name": "deploy-aws-ecs",
+    "score": 0.91,
+    "server": "aws-mcp"
+  },
+  {
+    "name": "send-slack-message",
+    "score": 0.88,
+    "server": "slack-mcp"
+  },
+  {
+    "name": "send-email",
+    "score": 0.72,
+    "server": "email-mcp"
+  }
+]
+```
+
+### Implementation
+
+```javascript
+const workflow = async () => {
+  const tools = await agent.retrieveTools({
+    query: "Deploy Node.js app to AWS, run tests, notify team",
+    topK: 10
+  });
+
+  // Step 1: Run tests
+  const testResult = await agent.executeTool({
+    toolName: 'run-test-suite',
+    params: {
+      project: 'my-app',
+      framework: 'jest',
+      coverage: true
+    }
+  });
+
+  if (testResult.failed > 0) {
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#deployments',
+        message: `❌ Tests failed: ${testResult.failed} failures`
+      }
+    });
+    return;
+  }
+
+  // Step 2: Deploy to AWS
+  const deployResult = await agent.executeTool({
+    toolName: 'deploy-aws-lambda',
+    params: {
+      function: 'my-app',
+      zip: 'build/function.zip',
+      env: 'production'
+    }
+  });
+
+  // Step 3: Notify team
+  await agent.executeTool({
+    toolName: 'send-slack-message',
+    params: {
+      channel: '#deployments',
+      message: `✅ Deployment successful!\n${deployResult.url}`
+    }
+  });
+};
+
+await workflow();
+```
+
+---
+
+## Query 3: Incident Response
+
+### User Query
+```
+"Get error logs from the API, check if there's a pattern, and restart the service if the CPU is too high"
+```
+
+### Tools Returned
+
+```json
+[
+  {
+    "name": "query-logs",
+    "score": 0.96,
+    "server": "monitoring-mcp"
+  },
+  {
+    "name": "query-metrics",
+    "score": 0.93,
+    "server": "monitoring-mcp"
+  },
+  {
+    "name": "restart-service",
+    "score": 0.91,
+    "server": "infrastructure-mcp"
+  },
+  {
+    "name": "create-incident-ticket",
+    "score": 0.87,
+    "server": "jira-mcp"
+  },
+  {
+    "name": "trigger-alert",
+    "score": 0.76,
+    "server": "monitoring-mcp"
+  }
+]
+```
+
+### Implementation
+
+```javascript
+const handleIncident = async () => {
+  // Get logs
+  const logs = await agent.executeTool({
+    toolName: 'query-logs',
+    params: {
+      service: 'api',
+      severity: 'error',
+      timeRange: '-30m',
+      limit: 100
+    }
+  });
+
+  // Analyze for patterns
+  const patterns = analyzeErrorLogs(logs);
+  console.log('🔍 Error patterns found:', patterns);
+
+  // Check metrics
+  const metrics = await agent.executeTool({
+    toolName: 'query-metrics',
+    params: {
+      service: 'api',
+      metric: ['cpu', 'memory', 'latency'],
+      timeRange: '-30m'
+    }
+  });
+
+  // Take action if needed
+  if (metrics.cpu > 85) {
+    console.log('⚠️ High CPU detected');
+
+    const restartResult = await agent.executeTool({
+      toolName: 'restart-service',
+      params: {
+        service: 'api',
+        replicas: 3,
+        graceful: true
+      }
+    });
+
+    // Create ticket
+    await agent.executeTool({
+      toolName: 'create-incident-ticket',
+      params: {
+        project: 'OPS',
+        title: `Auto-remediated high CPU incident`,
+        description: `Patterns: ${JSON.stringify(patterns)}`,
+        priority: 'High'
+      }
+    });
+
+    console.log('✅ Service restarted and incident tracked');
+  }
+};
+```
+
+---
+
+## Query 4: Infrastructure as Code
+
+### User Query
+```
+"Apply Terraform changes, validate they didn't break anything, and update our deployment documentation"
+```
+
+### Tools Returned
+
+```json
+[
+  {
+    "name": "terraform-apply",
+    "score": 0.97,
+    "server": "terraform-mcp"
+  },
+  {
+    "name": "terraform-validate",
+    "score": 0.95,
+    "server": "terraform-mcp"
+  },
+  {
+    "name": "run-smoke-tests",
+    "score": 0.92,
+    "server": "testing-mcp"
+  },
+  {
+    "name": "update-wiki",
+    "score": 0.88,
+    "server": "documentation-mcp"
+  },
+  {
+    "name": "create-github-release",
+    "score": 0.81,
+    "server": "github-mcp"
+  }
+]
+```
+
+---
+
+## Query 5: Complex Data Analysis
+
+### User Query
+```
+"Query my database for slow queries in the last hour, analyze the patterns, create a Jira ticket, and notify the DBA team"
+```
+
+### Tools Returned
+
+```json
+[
+  {
+    "name": "query-database",
+    "score": 0.98,
+    "server": "custom-db-mcp"
+  },
+  {
+    "name": "analyze-query-performance",
+    "score": 0.94,
+    "server": "database-monitoring-mcp"
+  },
+  {
+    "name": "create-jira-issue",
+    "score": 0.91,
+    "server": "jira-mcp"
+  },
+  {
+    "name": "send-slack-message",
+    "score": 0.89,
+    "server": "slack-mcp"
+  },
+  {
+    "name": "create-grafana-dashboard",
+    "score": 0.72,
+    "server": "monitoring-mcp"
+  }
+]
+```
+
+---
+
+## Query 6: Misspelled/Casual Language
+
+### User Query
+```
+"wanna deploy 2 prod n get some notifikatins plz"
+```
+
+### Tools Returned
+
+Despite the misspellings and casual language, Agent-CoreX understands the intent:
+
+```json
+[
+  {
+    "name": "deploy-to-production",
+    "score": 0.89,
+    "reason": "Semantic match despite misspelling"
+  },
+  {
+    "name": "send-slack-message",
+    "score": 0.85,
+    "reason": "Notification intent understood"
+  },
+  {
+    "name": "send-email",
+    "score": 0.72,
+    "reason": "Alternative notification method"
+  }
+]
+```
+
+This shows the power of **semantic search**. Agent-CoreX doesn't need exact keywords!
+
+---
+
+## Query 7: Vague Query
+
+### User Query
+```
+"DevOps stuff"
+```
+
+### Tools Returned
+
+```json
+[
+  {
+    "name": "deploy-kubernetes",
+    "score": 0.76,
+    "reason": "DevOps-related"
+  },
+  {
+    "name": "check-service-health",
+    "score": 0.73,
+    "reason": "Operations-related"
+  },
+  {
+    "name": "terraform-apply",
+    "score": 0.71,
+    "reason": "Infrastructure automation"
+  },
+  {
+    "name": "query-logs",
+    "score": 0.68,
+    "reason": "DevOps monitoring"
+  },
+  {
+    "name": "auto-scale-service",
+    "score": 0.66,
+    "reason": "DevOps automation"
+  }
+]
+```
+
+**Note:** Vague queries return lower scores. More specific = better results!
+
+---
+
+## Query 8: Tool Composition
+
+### User Query
+```
+"Create a GitHub issue from this error, assign it to the backend team, create a Jira ticket, and pin the error message to our Slack channel"
+```
+
+### Tools Returned
+
+```json
+[
+  {
+    "name": "create-github-issue",
+    "score": 0.96,
+    "server": "github-mcp"
+  },
+  {
+    "name": "assign-issue",
+    "score": 0.94,
+    "server": "github-mcp"
+  },
+  {
+    "name": "create-jira-issue",
+    "score": 0.92,
+    "server": "jira-mcp"
+  },
+  {
+    "name": "pin-message",
+    "score": 0.90,
+    "server": "slack-mcp"
+  },
+  {
+    "name": "send-slack-message",
+    "score": 0.88,
+    "server": "slack-mcp"
+  }
+]
+```
+
+### Full Execution
+
+```javascript
+const error = {
+  message: "Connection timeout",
+  stack: "...",
+  timestamp: new Date()
+};
+
+const tools = await agent.retrieveTools({
+  query: "Create GitHub issue, assign to backend team, create Jira ticket, pin to Slack"
+});
+
+// Create GitHub issue
+const ghIssue = await agent.executeTool({
+  toolName: 'create-github-issue',
+  params: {
+    repository: 'company/api',
+    title: error.message,
+    body: error.stack,
+    labels: ['bug', 'critical']
+  }
+});
+
+// Assign to backend team
+await agent.executeTool({
+  toolName: 'assign-issue',
+  params: {
+    repository: 'company/api',
+    issueNumber: ghIssue.number,
+    assignees: ['backend-team']
+  }
+});
+
+// Create Jira ticket
+const jiraIssue = await agent.executeTool({
+  toolName: 'create-jira-issue',
+  params: {
+    project: 'PLATFORM',
+    title: error.message,
+    description: error.stack,
+    priority: 'Highest'
+  }
+});
+
+// Pin to Slack
+await agent.executeTool({
+  toolName: 'pin-message',
+  params: {
+    channel: '#incidents',
+    message: `🚨 ${error.message}\nGH: ${ghIssue.url}\nJira: ${jiraIssue.url}`
+  }
+});
+
+console.log('✅ Error tracked across all platforms');
+```
+
+---
+
+## Tips for Better Queries
+
+### ✅ DO:
+
+- Be **specific** about what you want
+- Include **service names** when relevant
+- Mention **end goals** ("deploy and test")
+- Use **action verbs** ("create", "update", "delete")
+
+### ❌ DON'T:
+
+- Use **vague** terms ("do stuff")
+- Mix unrelated concepts
+- Expect mind-reading (specify platforms)
+
+### 📊 Example Progression:
+
+```
+Query 1 (Bad):    "stuff"
+Score: ❌ 0.45
+
+Query 2 (Better): "deploy"
+Score: ⚠️ 0.72
+
+Query 3 (Good):   "deploy to AWS"
+Score: ✅ 0.92
+
+Query 4 (Best):   "deploy Node.js app to AWS Lambda with tests"
+Score: ⭐ 0.98
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Dynamic Retrieval"
+    href="/core-concepts/dynamic-retrieval"
+  >
+    Learn how tools are ranked.
+  </Card>
+
+  <Card
+    title="Real-World Use Cases"
+    href="/use-cases/github-automation"
+  >
+    See complete production workflows.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/overview"
+  >
+    Execute these queries via API.
+  </Card>
+
+  <Card
+    title="Try Live"
+    href="https://www.agent-corex.com"
+  >
+    Test queries in the playground.
+  </Card>
+</CardGroup>
+
+---
+
+**Key Takeaway:** The more specific your query, the better Agent-CoreX can help. Try the examples above in your own workflows! 🚀

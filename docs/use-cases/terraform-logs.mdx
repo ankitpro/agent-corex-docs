@@ -1,0 +1,144 @@
+---
+title: 'Infrastructure as Code: Terraform + Logs'
+description: 'Automate infrastructure management using Terraform and log analysis with Agent-CoreX.'
+---
+
+## Infrastructure as Code: Terraform + Logs
+
+Automate infrastructure deployment, validation, and debugging using **Terraform and log analysis with MCP servers for developers**.
+
+---
+
+## Use Case: Deploy with Confidence
+
+Deploy infrastructure while monitoring logs and metrics.
+
+### Scenario
+
+1. Review Terraform plan
+2. Validate it's safe
+3. Apply changes
+4. Monitor logs for errors
+5. Rollback if needed
+
+### Implementation
+
+```javascript
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+async function deployInfrastructure(environment) {
+  const tools = await agent.retrieveTools({
+    query: "Plan Terraform, validate changes, apply, check logs for errors"
+  });
+
+  try {
+    // Plan
+    const plan = await agent.executeTool({
+      toolName: 'terraform-plan',
+      params: {
+        directory: `./terraform/${environment}`,
+        out: 'tfplan'
+      }
+    });
+
+    // Validate
+    const validation = validateTerraformPlan(plan);
+    if (!validation.safe) {
+      throw new Error(`Unsafe changes: ${validation.issues.join(', ')}`);
+    }
+
+    // Apply
+    const apply = await agent.executeTool({
+      toolName: 'terraform-apply',
+      params: {
+        planFile: 'tfplan',
+        autoApprove: true
+      }
+    });
+
+    // Monitor logs
+    const logs = await agent.executeTool({
+      toolName: 'query-logs',
+      params: {
+        service: 'terraform-provisioning',
+        severity: 'error',
+        timeRange: '-5m'
+      }
+    });
+
+    if (logs.errors.length > 0) {
+      console.error('Errors detected, rolling back...');
+      
+      await agent.executeTool({
+        toolName: 'terraform-destroy',
+        params: {
+          targets: apply.created_resources,
+          autoApprove: true
+        }
+      });
+
+      throw new Error(`Deployment failed: ${logs.errors[0]}`);
+    }
+
+    console.log('✅ Infrastructure deployed successfully');
+    return apply;
+
+  } catch (error) {
+    console.error('Deployment failed:', error.message);
+    
+    // Notify team
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#ops-alerts',
+        message: `❌ Infrastructure deployment failed\n${error.message}`
+      }
+    });
+    
+    throw error;
+  }
+}
+```
+
+---
+
+## Complete Example: Multi-Environment Deployment
+
+See [DevOps Automation](/use-cases/devops-automation) for complete examples including:
+- Kubernetes deployments
+- AWS infrastructure
+- Monitoring and alerting
+- Incident response
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="DevOps Automation"
+    href="/use-cases/devops-automation"
+  >
+    Complete DevOps workflows.
+  </Card>
+
+  <Card
+    title="GitHub Automation"
+    href="/use-cases/github-automation"
+  >
+    GitHub + Terraform integration.
+  </Card>
+
+  <Card
+    title="MCP Setup"
+    href="/mcp/setup-mcp-servers"
+  >
+    Connect Terraform MCP.
+  </Card>
+</CardGroup>
+
+---
+
+**Safe infrastructure automation** starts here! 🚀

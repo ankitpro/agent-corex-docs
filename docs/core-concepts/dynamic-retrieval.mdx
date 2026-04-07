@@ -1,0 +1,519 @@
+---
+title: 'Dynamic Tool Retrieval & Ranking'
+description: 'Learn how Agent-CoreX dynamically retrieves and ranks tools based on relevance, using AI-powered semantic matching.'
+---
+
+## Dynamic Tool Retrieval Explained
+
+Dynamic retrieval is the core innovation of Agent-CoreX. Instead of hardcoding tools, your agent requests tools at runtime based on the current task. This section explains how the ranking algorithm works.
+
+---
+
+## The Retrieval Pipeline
+
+When you query for tools, here's what happens:
+
+```
+┌────────────────────────────────────────────────┐
+│ Natural Language Query                         │
+│ "Deploy to AWS and notify Slack"              │
+└───────────────────┬────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+        ↓                       ↓
+   ┌──────────┐           ┌──────────┐
+   │Embedding │           │Intent    │
+   │Generation│           │Analysis  │
+   └────┬─────┘           └────┬─────┘
+        │                      │
+        └──────────┬───────────┘
+                   │
+        ┌──────────▼──────────┐
+        │ Vector Search       │
+        │ (Find similar tools)│
+        └──────────┬──────────┘
+                   │
+        ┌──────────▼──────────────────────┐
+        │ Ranking Engine                  │
+        │ - Semantic relevance (40%)      │
+        │ - Popularity (25%)              │
+        │ - User history (20%)            │
+        │ - Performance (15%)             │
+        └──────────┬──────────────────────┘
+                   │
+        ┌──────────▼──────────┐
+        │ Filtering & Return  │
+        │ Top-K Results       │
+        └─────────────────────┘
+```
+
+---
+
+## Step 1: Embedding Generation
+
+Your query is converted to a dense vector (embedding) that captures semantic meaning.
+
+### How It Works
+
+```
+Query: "Deploy to AWS and notify Slack"
+       ↓
+Embedding Model: sentence-transformers/all-MiniLM-L6-v2
+       ↓
+Vector: [0.12, 0.45, 0.88, -0.23, ..., 0.67]
+        384-dimensional vector
+```
+
+### Why Embeddings?
+
+Embeddings capture **semantic similarity** rather than exact keyword matching:
+
+```
+Query: "Deploy to production"
+Vector: [0.12, 0.45, 0.88, ...]
+
+Compared to:
+
+Tool: "Ship my app to prod"
+Vector: [0.13, 0.44, 0.87, ...]  ← Very similar! High match score
+
+Tool: "Build Docker container"
+Vector: [0.32, 0.12, 0.45, ...]  ← Different. Low match score
+```
+
+This is why Agent-CoreX understands:
+- Synonyms: "deploy" = "ship" = "release"
+- Misspellings: "deeploy" still matches
+- Paraphrasing: Long descriptions match specific queries
+
+---
+
+## Step 2: Vector Search
+
+The embedding is searched against a vector database of all tools.
+
+### Vector Database
+
+Agent-CoreX uses Qdrant for fast semantic search:
+
+```
+┌─────────────────────────────────────────┐
+│ Qdrant Vector Database                  │
+│                                         │
+│ Tools indexed by embedding:             │
+│                                         │
+│ deploy-aws: [0.15, 0.42, 0.85, ...]   │
+│ slack-notify: [0.11, 0.39, 0.82, ...]  │
+│ docker-build: [0.32, 0.18, 0.45, ...]  │
+│ github-deploy: [0.18, 0.38, 0.80, ...] │
+│ ...                                     │
+│ (156+ tools indexed)                    │
+└─────────────────────────────────────────┘
+```
+
+### Search Algorithm
+
+```
+1. Normalize query vector
+2. Compute cosine similarity to all tools
+3. Return top 50 candidates by similarity
+4. Pass to ranking engine
+
+Cosine Similarity = dot_product(query, tool) / (|query| * |tool|)
+Score range: 0.0 (completely different) to 1.0 (identical)
+```
+
+### Search Performance
+
+```
+Query: "Deploy to AWS and notify Slack"
+
+Candidates (top 10):
+1. deploy-aws-ecs       similarity: 0.89
+2. deploy-kubernetes    similarity: 0.87
+3. slack-send-message   similarity: 0.84
+4. github-deploy        similarity: 0.82
+5. docker-build         similarity: 0.76
+... (45 more candidates)
+```
+
+---
+
+## Step 3: Multi-Factor Ranking
+
+Candidates are ranked using multiple signals:
+
+### The Ranking Formula
+
+```
+final_score = (
+  embedding_similarity * 0.40 +
+  popularity_score * 0.25 +
+  user_history_boost * 0.20 +
+  performance_score * 0.15
+)
+```
+
+### Factor 1: Embedding Similarity (40%)
+
+**Definition:** How similar is the tool to your query?
+
+```javascript
+// Raw similarity from vector DB
+tool_embedding = [0.12, 0.45, 0.88, ...]
+query_embedding = [0.11, 0.44, 0.87, ...]
+similarity = cosine_distance(tool_embedding, query_embedding)
+// Result: 0.98
+
+// This is the heaviest factor because semantic match is most important
+similarity_score = 0.98 * 0.40 = 0.392
+```
+
+### Factor 2: Popularity (25%)
+
+**Definition:** How often is this tool used across all users?
+
+```javascript
+// Tool usage metrics
+deploy_aws_usage = {
+  daily_active_users: 2000,
+  weekly_calls: 50000,
+  success_rate: 0.98,
+  average_latency_ms: 245
+}
+
+// Calculate popularity score
+usage_percentile = percentile(tool_usage, all_tools) // 0-1
+reliability_bonus = success_rate * 0.1 // -10% for failures
+
+popularity_score = (usage_percentile + reliability_bonus) * 0.25
+// Result: 0.92 * 0.25 = 0.23
+```
+
+**Why it matters:** Popular tools are usually:
+- Well-tested and reliable
+- Have good documentation
+- Less likely to be buggy
+- Proven to work in production
+
+### Factor 3: User History (20%)
+
+**Definition:** How likely are YOU to use this tool?
+
+```javascript
+// User personalization
+user_history = {
+  deploy_aws: { uses: 15, success: 14 },
+  slack_notify: { uses: 8, success: 8 },
+  docker_build: { uses: 0, success: 0 }
+}
+
+// Calculate personalization boost
+if (tool_name in user_history) {
+  success_rate = successes / total_uses
+  recency_boost = days_since_used < 7 ? 1.2 : 1.0
+  user_history_score = success_rate * recency_boost * 0.20
+  // If you used it recently & successfully: big boost
+  // If you've never used it: 0 boost
+}
+```
+
+**Example:**
+- You've successfully deployed with `deploy-aws` 14/15 times → high boost
+- You've never used `docker-build` → no boost
+- You used `slack-notify` successfully → medium boost
+
+### Factor 4: Performance (15%)
+
+**Definition:** How fast and reliable is this tool?
+
+```javascript
+// Tool performance metrics
+performance = {
+  p50_latency_ms: 200,
+  p99_latency_ms: 1500,
+  error_rate: 0.005,  // 0.5%
+  uptime_percent: 99.95
+}
+
+// Calculate performance score
+// Penalize slow or unreliable tools
+latency_score = 1.0 - (p99_latency_ms / 5000) // slower = lower score
+reliability_score = (1 - error_rate) * uptime_percent
+performance_score = (latency_score + reliability_score) / 2 * 0.15
+// Result: 0.89 * 0.15 = 0.134
+```
+
+---
+
+## Complete Ranking Example
+
+Let's see the full process for a real query:
+
+### Query
+```
+"Deploy my Node.js app to production and notify the team"
+```
+
+### Candidates from Vector Search
+
+| Tool | Similarity |
+|------|-----------|
+| deploy-aws-ecs | 0.92 |
+| deploy-kubernetes | 0.89 |
+| slack-notify | 0.86 |
+| send-email | 0.72 |
+| github-deploy | 0.81 |
+
+### Full Ranking Calculation
+
+**Tool 1: deploy-aws-ecs**
+```
+Similarity (40%):    0.92 * 0.40 = 0.368
+Popularity (25%):    0.93 * 0.25 = 0.232
+User History (20%):  0.95 * 0.20 = 0.190  (used successfully 18 times)
+Performance (15%):   0.91 * 0.15 = 0.137
+
+TOTAL SCORE: 0.368 + 0.232 + 0.190 + 0.137 = 0.927 ⭐⭐⭐
+```
+
+**Tool 2: slack-notify**
+```
+Similarity (40%):    0.86 * 0.40 = 0.344
+Popularity (25%):    0.88 * 0.25 = 0.220
+User History (20%):  0.90 * 0.20 = 0.180  (used successfully 5 times)
+Performance (15%):   0.92 * 0.15 = 0.138
+
+TOTAL SCORE: 0.344 + 0.220 + 0.180 + 0.138 = 0.882 ⭐⭐
+```
+
+**Tool 3: deploy-kubernetes**
+```
+Similarity (40%):    0.89 * 0.40 = 0.356
+Popularity (25%):    0.82 * 0.25 = 0.205  (less popular than AWS)
+User History (20%):  0.50 * 0.20 = 0.100  (used only 2 times)
+Performance (15%):   0.88 * 0.15 = 0.132
+
+TOTAL SCORE: 0.356 + 0.205 + 0.100 + 0.132 = 0.793 ⭐
+```
+
+### Final Results
+
+```json
+[
+  {
+    "name": "deploy-aws-ecs",
+    "score": 0.927,
+    "reason": "Perfect semantic match + popular + your history"
+  },
+  {
+    "name": "slack-notify",
+    "score": 0.882,
+    "reason": "Good match for notification + reliable"
+  },
+  {
+    "name": "deploy-kubernetes",
+    "score": 0.793,
+    "reason": "Similar to AWS but you prefer AWS"
+  }
+]
+```
+
+---
+
+## Advanced: Context-Aware Ranking
+
+The ranking can be further influenced by context:
+
+### Temporal Factors
+
+```javascript
+// Time-based boosts
+if (current_time.hour >= 17) {
+  // After hours - prefer async tools
+  async_boost = 1.2
+} else {
+  // Business hours - prefer fast tools
+  latency_boost = 1.1
+}
+```
+
+### Workflow Context
+
+```javascript
+// If previous tool was GitHub, boost GitHub tools
+if (last_tool.server === "github-mcp") {
+  workflow_boost = 1.15
+}
+```
+
+### Organizational Policy
+
+```javascript
+// Enforce corporate standards
+if (tool.compliance_certified) {
+  compliance_boost = 1.25
+}
+```
+
+---
+
+## Filtering & Constraints
+
+You can constrain the search results:
+
+### Server Filter
+
+```javascript
+// Only return tools from AWS MCP
+const tools = await agent.retrieveTools({
+  query: "Deploy my app",
+  filter: {
+    server: "aws-mcp"  // Restricts to AWS tools only
+  }
+});
+
+// Result: Only deploy-aws-ecs, deploy-aws-lambda, etc.
+```
+
+### Category Filter
+
+```javascript
+// Only infrastructure-related tools
+const tools = await agent.retrieveTools({
+  query: "Deploy my app",
+  filter: {
+    category: "infrastructure"
+  }
+});
+```
+
+### Score Threshold
+
+```javascript
+// Only return tools with at least 85% relevance
+const tools = await agent.retrieveTools({
+  query: "Deploy my app",
+  filter: {
+    min_score: 0.85
+  }
+});
+```
+
+---
+
+## Optimization Strategies
+
+### 1. Better Queries = Better Results
+
+```javascript
+// ❌ Bad: Too vague
+await agent.retrieveTools({
+  query: "stuff"
+});
+
+// ✅ Good: Specific and clear
+await agent.retrieveTools({
+  query: "Deploy Node.js app to AWS Lambda with environment variables"
+});
+```
+
+### 2. Multi-Step Retrieval
+
+For complex workflows, retrieve tools in phases:
+
+```javascript
+// Phase 1: Deployment tools
+const deployTools = await agent.retrieveTools({
+  query: "Deploy to production",
+  topK: 3
+});
+
+// Phase 2: Notification tools
+const notifyTools = await agent.retrieveTools({
+  query: "Notify team of deployment",
+  topK: 3
+});
+
+// Execute both sets
+```
+
+### 3. Caching Hot Tools
+
+```javascript
+// Cache for common queries (1 hour TTL)
+const cachedTools = cache.get("deploy-production");
+if (!cachedTools) {
+  const tools = await agent.retrieveTools({
+    query: "Deploy to production"
+  });
+  cache.set("deploy-production", tools, 3600);
+}
+```
+
+---
+
+## Monitoring Your Rankings
+
+Check how tools are ranked for your queries:
+
+```bash
+curl "https://api.agent-corex.com/v1/retrieve_tools" \
+  -d '{
+    "query": "Deploy to production",
+    "debug": true
+  }'
+```
+
+**Debug Response:**
+```json
+{
+  "tools": [...],
+  "debug": {
+    "query_embedding": [0.12, 0.45, ...],
+    "embedding_similarity_scores": [0.92, 0.89, 0.86],
+    "popularity_scores": [0.93, 0.82, 0.71],
+    "user_history_scores": [0.95, 0.50, 0.30],
+    "performance_scores": [0.91, 0.88, 0.85]
+  }
+}
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Tool Lifecycle"
+    href="/core-concepts/tool-lifecycle"
+  >
+    Learn how tools move through the system.
+  </Card>
+
+  <Card
+    title="Tool Retrieval API"
+    href="/api-reference/retrieve-tools"
+  >
+    Detailed endpoint documentation.
+  </Card>
+
+  <Card
+    title="Real Examples"
+    href="/examples/sample-queries"
+  >
+    See dynamic retrieval in action.
+  </Card>
+
+  <Card
+    title="Optimization Guide"
+    href="/tool-retrieval/optimization"
+  >
+    Token usage and performance tips.
+  </Card>
+</CardGroup>
+
+---
+
+**Key Takeaway:** Dynamic retrieval uses sophisticated AI-powered ranking to find the perfect tools for your task. The more specific your query, the better the results! 🚀

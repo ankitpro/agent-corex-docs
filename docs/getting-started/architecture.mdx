@@ -1,0 +1,325 @@
+---
+title: 'Architecture Overview'
+description: 'Deep dive into the Agent-CoreX architecture, components, and how MCP servers for developers integrate seamlessly.'
+---
+
+## Agent-CoreX Architecture
+
+Agent-CoreX is built on three core pillars: **Tool Retrieval**, **MCP Management**, and **Intelligent Execution**. Let's break down how everything works together.
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          Your Application                       │
+│              (Agent, Service, or Custom Workflow)               │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                  ┌────────┴────────┐
+                  │                 │
+                  ↓                 ↓
+          ┌──────────────┐  ┌──────────────┐
+          │  /retrieve   │  │  /execute    │
+          │   _tools     │  │   _tool      │
+          └──────────────┘  └──────────────┘
+                  │                 │
+                  └────────┬────────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+        ↓                  ↓                  ↓
+    ┌────────────┐  ┌────────────┐  ┌────────────┐
+    │ Tool Index │  │   Ranking  │  │  MCP Mgr   │
+    │ (Vector    │  │   Engine   │  │ (Router)   │
+    │  DB)       │  │ (LLM)      │  │            │
+    └────────────┘  └────────────┘  └────────────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+        ↓                  ↓                  ↓
+   ┌─────────┐        ┌─────────┐        ┌─────────┐
+   │GitHub   │        │ Slack   │        │ Jira    │
+   │ MCP     │        │ MCP     │        │ MCP     │
+   │Server   │        │Server   │        │Server   │
+   └─────────┘        └─────────┘        └─────────┘
+        │                  │                  │
+        ↓                  ↓                  ↓
+   ┌─────────┐        ┌─────────┐        ┌─────────┐
+   │GitHub   │        │Slack    │        │ Jira    │
+   │API      │        │API      │        │API      │
+   └─────────┘        └─────────┘        └─────────┘
+```
+
+### Core Components
+
+#### 1. **Tool Retrieval Engine**
+
+The heart of Agent-CoreX. Converts natural language queries into ranked tool recommendations.
+
+**How it works:**
+1. User/Agent queries: `"I need to deploy to AWS and notify Slack"`
+2. Query is vectorized using embeddings
+3. Matched against tool index (100+ MCP servers)
+4. LLM-based ranker scores tools by relevance
+5. Returns top-k tools sorted by relevance score
+
+**Key Features:**
+- Fast semantic search (sub-50ms)
+- Context-aware ranking
+- Token-optimized responses
+- Caching for frequently queried patterns
+
+#### 2. **MCP Manager**
+
+Routes tool execution requests to the appropriate MCP server and handles communication.
+
+**Responsibilities:**
+- Server discovery and health checks
+- Load balancing across MCP instances
+- Authentication & credential management
+- Error handling & retries
+- Response formatting
+
+**Supported Protocols:**
+- JSON-RPC 2.0 (MCP standard)
+- REST with MCP gateway
+- WebSocket for real-time tools
+
+#### 3. **Tool Index**
+
+A vector database that catalogs all available tools and their metadata.
+
+**Contains:**
+- Tool name, description, parameters
+- Input/output schemas
+- Authentication requirements
+- Performance metadata
+- Usage frequency & popularity
+
+**Updated:**
+- Real-time when new MCP servers connect
+- Nightly indexing of tool changes
+- On-demand reindexing via API
+
+#### 4. **Ranking & Optimization Engine**
+
+Uses LLM-based intelligence to rank tools and optimize token usage.
+
+**Ranking Factors:**
+1. **Semantic relevance** (0.4 weight)
+2. **Tool popularity** (0.25 weight)
+3. **User history** (0.2 weight)
+4. **Performance metrics** (0.15 weight)
+
+**Optimization:**
+- Minimizes context window usage
+- Batches similar tools
+- Prunes low-confidence results
+- Caches hot tools
+
+### Data Flow: From Query to Execution
+
+Let's trace a real request:
+
+#### Scenario: "Create a GitHub PR, update Jira, and notify Slack"
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ REQUEST: Agent says "Create a GitHub PR, update Jira, notify    │
+│ Slack"                                                          │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+        ┌────────────────┴──────────────────┐
+        │                                   │
+        ↓                                   ↓
+   PHASE 1: RETRIEVAL              PHASE 2: RANKING
+   ┌──────────────────────┐        ┌──────────────────────┐
+   │1. Embed query        │        │1. LLM scores results │
+   │2. Search vector DB   │        │2. Context filtering  │
+   │3. Get candidates:    │        │3. Sort by relevance  │
+   │   - create-pr        │        │                      │
+   │   - create-issue     │        │ SCORED:              │
+   │   - send-message     │        │ 0.98 create-pr       │
+   │   - update-jira      │        │ 0.96 update-jira     │
+   │   - slack-notify     │        │ 0.94 send-message    │
+   │   (25 candidates)    │        │ (filtered to top 5)  │
+   └──────────────────────┘        └──────────────────────┘
+        │                                  │
+        └──────────────┬───────────────────┘
+                       │
+        ┌──────────────┴──────────────┐
+        │                             │
+        ↓                             ↓
+  PHASE 3: TOOL INFO            PHASE 4: EXECUTION
+  ┌──────────────────────┐     ┌──────────────────────┐
+  │Fetch tool schemas:   │     │1. Agent selects top  │
+  │- Parameters          │     │   3 tools            │
+  │- Descriptions        │     │2. MCP Manager routes │
+  │- Auth requirements   │     │   to servers         │
+  │                      │     │3. Parallel execution │
+  │Return to Agent:      │     │4. Aggregate results  │
+  │[                     │     │                      │
+  │  {                   │     │ RESULTS:             │
+  │    name: "create-pr" │     │ ✅ PR #123 created   │
+  │    score: 0.98       │     │ ✅ Jira TASK-456     │
+  │    params: {...}     │     │ ✅ Slack notified    │
+  │  },                  │     │                      │
+  │  ...                 │     │ Total time: 2.3s     │
+  │]                     │     └──────────────────────┘
+  └──────────────────────┘
+```
+
+### MCP Servers for Developers: Integration
+
+Agent-CoreX provides first-class support for MCP servers across developer ecosystems:
+
+#### MCP Servers in AI Applications
+
+```
+Agent-CoreX integrates with:
+
+├── Claude Ecosystem
+│   ├── MCP Servers for Claude Code
+│   ├── Claude API (native integration)
+│   └── Claude Web Interface
+│
+├── VS Code Integration
+│   ├── MCP Servers in VS Code
+│   ├── VS Code Extension
+│   └── Inline AI Assistance
+│
+├── GitHub Copilot
+│   ├── MCP Servers for GitHub Copilot
+│   ├── Copilot Chat
+│   └── Code Completion
+│
+└── Enterprise Copilot
+    ├── MCP Servers in Copilot
+    ├── Custom Copilot instances
+    └── Organization-wide access
+```
+
+### Security & Authentication
+
+Each MCP server connection is secured:
+
+```
+┌──────────────────────────────────────┐
+│ User Connects MCP Server             │
+│ (e.g., GitHub Personal Token)        │
+└────────┬─────────────────────────────┘
+         │
+         ↓
+┌──────────────────────────────────────┐
+│ Encryption (AES-256)                 │
+│ Stored in secure vault               │
+└────────┬─────────────────────────────┘
+         │
+         ↓
+┌──────────────────────────────────────┐
+│ When Tool Executes:                  │
+│ 1. Credential retrieved (decrypted)  │
+│ 2. Injected into MCP call            │
+│ 3. Sent to MCP server                │
+│ 4. Credential immediately cleared    │
+│ 5. No logs contain sensitive data    │
+└────────┬─────────────────────────────┘
+         │
+         ↓
+┌──────────────────────────────────────┐
+│ Audit Trail                          │
+│ ✓ Who executed                       │
+│ ✓ Which tool                         │
+│ ✓ Timestamp                          │
+│ ✗ No credentials in logs             │
+└──────────────────────────────────────┘
+```
+
+### Performance Characteristics
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Tool Retrieval** | 15-50ms | Includes vectorization & ranking |
+| **Tool Execution** | 100ms-5s | Depends on external API |
+| **Max Tools Returned** | 50 | Default: 5 (configurable) |
+| **Concurrent Requests** | 1,000/sec | Per authenticated user |
+| **Tool Index Size** | 100+ servers | Grows with MCP marketplace |
+| **Uptime SLA** | 99.99% | Enterprise tier |
+
+### Deployment Topology
+
+Agent-CoreX can be deployed in multiple configurations:
+
+#### 1. **Cloud Managed** (Default)
+```
+Your App → Agent-CoreX Cloud → MCP Servers
+```
+Pros: Zero maintenance, automatic scaling
+Cons: External dependency
+
+#### 2. **Self-Hosted**
+```
+Your App → Agent-CoreX (Self-Hosted) → MCP Servers
+```
+Pros: Full control, private deployment
+Cons: You manage infrastructure
+
+#### 3. **Hybrid**
+```
+Your App → Agent-CoreX (Private VPC) → Internal MCP + Cloud MCP
+```
+Pros: Best of both worlds
+Cons: More complex setup
+
+### Comparison: MCP Servers for Developers
+
+Agent-CoreX simplifies working with MCP servers across different environments:
+
+| Feature | Manual MCP | Agent-CoreX |
+|---------|-----------|-------------|
+| Tool Discovery | Manual | Automatic semantic search |
+| Tool Selection | Hardcode | AI-powered ranking |
+| Server Management | DIY | Built-in |
+| Error Handling | Manual | Automatic retries |
+| Monitoring | DIY | Built-in dashboards |
+| MCP Servers in VS Code | Limited | Full marketplace access |
+| MCP Servers for Claude Code | Setup required | One-click connect |
+| Token Optimization | Manual | Automatic |
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Core Concepts"
+    href="/core-concepts/overview"
+  >
+    Learn about tool lifecycle and dynamic retrieval in detail.
+  </Card>
+
+  <Card
+    title="MCP Setup"
+    href="/mcp/setup-mcp-servers"
+  >
+    Connect your first MCP server and start building.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/overview"
+  >
+    Detailed endpoint documentation with examples.
+  </Card>
+
+  <Card
+    title="Use Cases"
+    href="/use-cases/github-automation"
+  >
+    See real-world examples of Agent-CoreX in action.
+  </Card>
+</CardGroup>
+
+---
+
+Want to understand the technical details? Check out our [GitHub repository](https://github.com/anthropics/agent-corex) for source code and architecture discussions.

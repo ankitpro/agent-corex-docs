@@ -1,0 +1,214 @@
+---
+title: 'Token Optimization & Performance'
+description: 'Optimize token usage and performance when using Agent-CoreX tool retrieval.'
+---
+
+## Token Optimization & Performance
+
+Agent-CoreX is designed to minimize token usage while maximizing tool discovery effectiveness.
+
+---
+
+## Token Efficiency
+
+### Tool Retrieval Tokens
+
+When you call `/retrieve_tools`, tokens are used for:
+
+1. **Query Processing** (input tokens)
+   - Your query: 10-50 tokens
+   - Context headers: 5-10 tokens
+
+2. **Tool Ranking** (processing)
+   - LLM ranking: 100-200 tokens per query
+   - Tool descriptions: 5-10 tokens each
+
+3. **Response** (output tokens)
+   - Tool metadata returned: 50-200 tokens
+   - Default top_k=5: ~75 tokens
+
+**Total per query: ~150-400 tokens**
+
+### Optimization Strategies
+
+#### 1. Use Specific Queries
+
+```javascript
+// ❌ 300 tokens (vague, LLM needs to search harder)
+await agent.retrieveTools({
+  query: "I need help with something for work"
+});
+
+// ✅ 150 tokens (specific, fast match)
+await agent.retrieveTools({
+  query: "Deploy to AWS Lambda"
+});
+```
+
+#### 2. Set Lower top_k When Possible
+
+```javascript
+// ❌ More tokens
+await agent.retrieveTools({
+  query: "Deploy",
+  topK: 50  // Returns 50 tools
+});
+
+// ✅ Fewer tokens
+await agent.retrieveTools({
+  query: "Deploy",
+  topK: 5   // Only return top 5
+});
+```
+
+#### 3. Use Filters to Narrow Search
+
+```javascript
+// ❌ Broad search (higher tokens)
+await agent.retrieveTools({
+  query: "Deploy"
+});
+
+// ✅ Filtered search (lower tokens)
+await agent.retrieveTools({
+  query: "Deploy",
+  filter: {
+    server: "aws-mcp"
+  }
+});
+```
+
+---
+
+## Performance Metrics
+
+### Retrieval Speed
+
+| Query Complexity | Time | Tools Searched |
+|------------------|------|-----------------|
+| Simple | <20ms | 50 |
+| Moderate | 30-50ms | 100 |
+| Complex | 50-80ms | 150+ |
+
+### Caching Benefits
+
+Agent-CoreX automatically caches:
+
+```javascript
+// First call: 45ms
+const tools = await agent.retrieveTools({
+  query: "Deploy to production"
+});
+
+// Subsequent calls within 1 hour: <5ms
+const tools2 = await agent.retrieveTools({
+  query: "Deploy to production"
+});
+// Cache hit! No re-ranking needed.
+```
+
+---
+
+## Best Practices
+
+✅ **DO:**
+- Use specific, clear queries
+- Set appropriate `top_k` (3-10 usually sufficient)
+- Use filters when you know the server
+- Reuse tool lists when possible
+
+❌ **DON'T:**
+- Query for everything (vague queries cost more)
+- Request max results if you only need 3
+- Ignore caching opportunities
+- Make identical queries repeatedly
+
+---
+
+## Monitoring Token Usage
+
+```bash
+# Check your token usage
+agent-corex stats tokens
+
+# Output:
+# This month: 45,234 tokens used
+# Retrieval: 25,000 tokens
+# Execution: 20,234 tokens
+```
+
+---
+
+## Cost Estimation
+
+**Free Tier**
+- 1,000 requests/month
+- ~200 tokens per request
+- Total: ~200,000 tokens
+
+**Pro Tier**
+- 100,000 requests/month
+- ~150 tokens per request (optimized)
+- Total: ~15,000,000 tokens
+
+---
+
+## Advanced Optimization
+
+### Batch Retrieval
+
+```javascript
+// Instead of multiple queries
+const tools1 = await agent.retrieveTools({query: "deploy"});
+const tools2 = await agent.retrieveTools({query: "notify"});
+// Total: ~300 tokens
+
+// Use one combined query
+const tools = await agent.retrieveTools({
+  query: "deploy and notify team"
+});
+// Total: ~150 tokens (50% savings)
+```
+
+### Prediction & Caching
+
+For common workflows, cache tool lists:
+
+```javascript
+const getDeploymentTools = async () => {
+  // Check cache first
+  const cached = cache.get("deployment-tools");
+  if (cached) return cached;
+
+  // Retrieve once, cache for 1 hour
+  const tools = await agent.retrieveTools({
+    query: "Deploy to production"
+  });
+  cache.set("deployment-tools", tools, 3600);
+  return tools;
+};
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="API Reference"
+    href="/api-reference/overview"
+  >
+    Technical API docs.
+  </Card>
+
+  <Card
+    title="Sample Queries"
+    href="/examples/sample-queries"
+  >
+    Real examples.
+  </Card>
+</CardGroup>
+
+---
+
+**Tip:** Specific queries = fewer tokens = faster responses = lower cost! 🚀

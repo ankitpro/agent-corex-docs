@@ -1,0 +1,563 @@
+---
+title: 'DevOps Automation with MCP Servers for Developers'
+description: 'Automate infrastructure deployments, monitoring, and incident response using Agent-CoreX MCP servers for developers.'
+---
+
+## DevOps Automation: Deploy & Monitor at Scale
+
+Build intelligent **DevOps automation** workflows using **MCP servers in AI applications**. Automate deployments, manage infrastructure, respond to incidents, and monitor systems 24/7.
+
+### Problem: Manual DevOps is Error-Prone & Slow
+
+DevOps engineers spend too much time on:
+
+- Manual deployments to multiple environments
+- Incident triage and remediation
+- Infrastructure provisioning
+- Monitoring and alerting
+- Log analysis and debugging
+
+With Agent-CoreX, intelligent agents handle DevOps tasks automatically.
+
+---
+
+## Use Case 1: Automated Deployment Pipeline
+
+### Scenario
+
+Your deployment agent needs to:
+
+1. Build and test application
+2. Deploy to staging environment
+3. Run smoke tests
+4. Deploy to production
+5. Verify deployment health
+6. Notify team
+
+### Implementation
+
+```javascript
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+async function deployApplication(version, environment) {
+  // Find all deployment-related tools
+  const tools = await agent.retrieveTools({
+    query: "Build Docker image, run tests, deploy to production, check health status, notify team",
+    topK: 8
+  });
+
+  console.log('Available tools:', tools.map(t => t.name));
+  // [
+  //   {name: "docker-build-image", score: 0.98},
+  //   {name: "run-test-suite", score: 0.96},
+  //   {name: "deploy-kubernetes", score: 0.95},
+  //   {name: "check-service-health", score: 0.94},
+  //   {name: "send-slack-message", score: 0.92}
+  // ]
+
+  try {
+    // Step 1: Build Docker image
+    const buildResult = await agent.executeTool({
+      toolName: 'docker-build-image',
+      params: {
+        dockerfile: './Dockerfile',
+        imageName: 'company-app',
+        imageTag: version,
+        registry: 'docker.io/company'
+      }
+    });
+
+    console.log('✅ Build successful:', buildResult.imageDigest);
+
+    // Step 2: Run tests
+    const testResult = await agent.executeTool({
+      toolName: 'run-test-suite',
+      params: {
+        image: buildResult.imageUri,
+        testPath: './tests',
+        coverage: true
+      }
+    });
+
+    if (testResult.failed > 0) {
+      throw new Error(`${testResult.failed} tests failed`);
+    }
+
+    console.log('✅ Tests passed:', testResult.passed);
+
+    // Step 3: Deploy to environment
+    const deployResult = await agent.executeTool({
+      toolName: 'deploy-kubernetes',
+      params: {
+        cluster: environment === 'prod' ? 'prod-cluster' : 'staging-cluster',
+        namespace: environment,
+        image: buildResult.imageUri,
+        replicas: environment === 'prod' ? 3 : 1,
+        strategy: 'rolling'
+      }
+    });
+
+    console.log('✅ Deployment started:', deployResult.deploymentId);
+
+    // Step 4: Monitor health
+    let healthChecks = 0;
+    let isHealthy = false;
+
+    while (healthChecks < 30 && !isHealthy) {
+      const health = await agent.executeTool({
+        toolName: 'check-service-health',
+        params: {
+          service: 'company-app',
+          environment: environment,
+          timeout: 10
+        }
+      });
+
+      if (health.status === 'healthy') {
+        isHealthy = true;
+        console.log('✅ Service is healthy');
+      } else {
+        console.log(`⏳ Health check ${healthChecks}/30: ${health.status}`);
+        await sleep(5000);
+      }
+
+      healthChecks++;
+    }
+
+    if (!isHealthy) {
+      throw new Error('Service failed to become healthy after deployment');
+    }
+
+    // Step 5: Notify team
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#deployments',
+        message: `✅ Deployment successful!\n\n**Version:** ${version}\n**Environment:** ${environment}\n**Image:** ${buildResult.imageUri}\n**Tests Passed:** ${testResult.passed}\n**Status:** Healthy`
+      }
+    });
+
+    return {
+      success: true,
+      version,
+      environment,
+      deploymentId: deployResult.deploymentId
+    };
+
+  } catch (error) {
+    // Notify team of failure
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#deployments',
+        message: `❌ Deployment failed!\n\n**Version:** ${version}\n**Error:** ${error.message}\n**Action:** Manual review required`
+      }
+    });
+
+    throw error;
+  }
+}
+```
+
+### Result
+
+**Before:**
+- Manual deployment: 30 minutes
+- Error rate: ~5%
+- Downtime risk: High
+
+**After:**
+- Automated deployment: 3 minutes
+- Error rate: <0.1%
+- Downtime risk: Minimal
+
+---
+
+## Use Case 2: Incident Response & Remediation
+
+### Scenario
+
+Your monitoring system detects an issue. The incident response agent:
+
+1. Collects logs and metrics
+2. Analyzes root cause
+3. Applies remediation
+4. Tracks resolution
+5. Posts incident summary
+
+### Implementation
+
+```javascript
+async function handleIncident(alert) {
+  const tools = await agent.retrieveTools({
+    query: "Get logs, query metrics, restart service, check status, update incident ticket",
+    topK: 6
+  });
+
+  try {
+    // Get logs
+    const logs = await agent.executeTool({
+      toolName: 'query-logs',
+      params: {
+        service: alert.service,
+        timeRange: '-30m',
+        level: 'error',
+        limit: 100
+      }
+    });
+
+    // Get metrics
+    const metrics = await agent.executeTool({
+      toolName: 'query-metrics',
+      params: {
+        service: alert.service,
+        metric: ['cpu', 'memory', 'latency'],
+        timeRange: '-30m'
+      }
+    });
+
+    // Analyze logs for root cause
+    const analysis = analyzeIncident(logs, metrics);
+
+    // Apply remediation
+    if (analysis.rootCause === 'memory-leak') {
+      // Restart the service
+      await agent.executeTool({
+        toolName: 'restart-service',
+        params: {
+          service: alert.service,
+          replicas: 3,
+          gracefulPeriod: 30
+        }
+      });
+
+      console.log('✅ Service restarted');
+    } else if (analysis.rootCause === 'database-connection-timeout') {
+      // Scale database connections
+      await agent.executeTool({
+        toolName: 'update-database-config',
+        params: {
+          database: alert.database,
+          maxConnections: 200,
+          connectionTimeout: 10
+        }
+      });
+
+      console.log('✅ Database config updated');
+    }
+
+    // Verify health
+    const health = await agent.executeTool({
+      toolName: 'check-service-health',
+      params: {
+        service: alert.service
+      }
+    });
+
+    // Create incident ticket
+    const incident = await agent.executeTool({
+      toolName: 'create-jira-issue',
+      params: {
+        project: 'OPS',
+        title: `[INCIDENT] ${alert.title}`,
+        description: `**Root Cause:** ${analysis.rootCause}\n\n**Logs:** ${JSON.stringify(logs)}\n\n**Remediation:** ${analysis.remediation}`,
+        priority: 'Highest',
+        status: 'resolved'
+      }
+    });
+
+    // Notify team
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#incidents',
+        message: `✅ Incident resolved automatically\n\n**Service:** ${alert.service}\n**Root Cause:** ${analysis.rootCause}\n**Status:** ${health.status}\n**Ticket:** ${incident.key}`
+      }
+    });
+
+  } catch (error) {
+    // If auto-remediation fails, escalate
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#incidents',
+        message: `🚨 Auto-remediation failed\n\n**Alert:** ${alert.title}\n**Error:** ${error.message}\n**Action:** @oncall, manual intervention needed`
+      }
+    });
+  }
+}
+```
+
+---
+
+## Use Case 3: Infrastructure Provisioning with Terraform
+
+### Scenario
+
+Your infrastructure agent needs to:
+
+1. Review Terraform plan
+2. Validate changes
+3. Apply infrastructure
+4. Update DNS/load balancers
+5. Document changes
+
+### Implementation
+
+```javascript
+async function provisionInfrastructure(tfPlan) {
+  const tools = await agent.retrieveTools({
+    query: "Run Terraform plan, apply infrastructure, update DNS records, update load balancer",
+    topK: 5
+  });
+
+  // Parse Terraform plan
+  const changes = parseTerraformPlan(tfPlan);
+
+  console.log('📋 Terraform Plan:');
+  console.log(`  Add: ${changes.add} resources`);
+  console.log(`  Change: ${changes.modify} resources`);
+  console.log(`  Delete: ${changes.delete} resources`);
+
+  // Validate changes
+  const validation = validateChanges(changes);
+  if (!validation.safe) {
+    throw new Error(`Unsafe changes detected: ${validation.issues.join(', ')}`);
+  }
+
+  // Apply Terraform
+  const applyResult = await agent.executeTool({
+    toolName: 'terraform-apply',
+    params: {
+      directory: './terraform/prod',
+      autoApprove: true,
+      parallelism: 10
+    }
+  });
+
+  console.log('✅ Infrastructure provisioned');
+
+  // Get new resources
+  const resources = parseTerraformOutput(applyResult.output);
+
+  // Update DNS if new load balancer
+  if (resources.newLoadBalancer) {
+    await agent.executeTool({
+      toolName: 'update-dns-records',
+      params: {
+        domain: 'api.company.com',
+        type: 'CNAME',
+        value: resources.newLoadBalancer.endpoint,
+        ttl: 300
+      }
+    });
+
+    console.log('✅ DNS updated');
+  }
+
+  // Update load balancer
+  if (resources.newServers.length > 0) {
+    await agent.executeTool({
+      toolName: 'update-load-balancer',
+      params: {
+        loadBalancer: 'prod-alb',
+        targetGroup: 'app-servers',
+        targets: resources.newServers.map(s => s.id)
+      }
+    });
+
+    console.log('✅ Load balancer updated');
+  }
+
+  // Document changes
+  await agent.executeTool({
+    toolName: 'create-github-issue',
+    params: {
+      repository: 'company/infrastructure',
+      title: 'Terraform Apply: Infra provisioning',
+      body: `**Date:** ${new Date().toISOString()}\n\n**Changes:**\n- Added: ${changes.add}\n- Modified: ${changes.modify}\n- Deleted: ${changes.delete}\n\n**Output:**\n${applyResult.output}`
+    }
+  });
+
+  return {
+    success: true,
+    resourcesCreated: changes.add,
+    resourcesModified: changes.modify
+  };
+}
+```
+
+---
+
+## Use Case 4: Continuous Monitoring & Alerting
+
+### Scenario
+
+Your monitoring agent:
+
+1. Continuously checks metrics
+2. Detects anomalies
+3. Adjusts resources automatically
+4. Creates dashboards
+5. Sends regular reports
+
+### Implementation
+
+```javascript
+async function monitorAndOptimize() {
+  const tools = await agent.retrieveTools({
+    query: "Query metrics, check thresholds, auto-scale resources, create dashboards"
+  });
+
+  // Check metrics every 5 minutes
+  setInterval(async () => {
+    const metrics = await agent.executeTool({
+      toolName: 'query-metrics',
+      params: {
+        service: 'company-api',
+        metrics: ['cpu', 'memory', 'latency', 'request-rate'],
+        timeRange: '-5m'
+      }
+    });
+
+    // Detect anomalies
+    const anomalies = detectAnomalies(metrics);
+
+    if (anomalies.length > 0) {
+      // Auto-scale if needed
+      if (metrics.cpu > 80) {
+        await agent.executeTool({
+          toolName: 'auto-scale-service',
+          params: {
+            service: 'company-api',
+            desiredReplicas: 5,
+            maxReplicas: 10
+          }
+        });
+      }
+
+      // Alert team
+      await agent.executeTool({
+        toolName: 'send-slack-message',
+        params: {
+          channel: '#alerts',
+          message: `⚠️ Anomaly detected\n\n${anomalies.map(a => `- ${a.metric}: ${a.value}`).join('\n')}`
+        }
+      });
+    }
+  }, 5 * 60 * 1000);
+
+  // Daily reports
+  schedule.every().day().at('09:00').do(async () => {
+    const dailyMetrics = await agent.executeTool({
+      toolName: 'query-metrics',
+      params: {
+        service: 'company-api',
+        metrics: ['availability', 'latency', 'error-rate'],
+        timeRange: '-24h'
+      }
+    });
+
+    const report = generateDailyReport(dailyMetrics);
+
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#ops-daily-report',
+        message: report
+      }
+    });
+  });
+}
+```
+
+---
+
+## Multi-Cloud Deployment
+
+Agent-CoreX handles deployments across clouds:
+
+```javascript
+async function deployMultiCloud() {
+  const tools = await agent.retrieveTools({
+    query: "Deploy to AWS, GCP, and Azure with load balancing"
+  });
+
+  // Deploy to each cloud in parallel
+  const deployments = await Promise.all([
+    agent.executeTool({
+      toolName: 'deploy-aws-ecs',
+      params: { cluster: 'prod-us-east', image: imageUri }
+    }),
+    agent.executeTool({
+      toolName: 'deploy-gcp-gke',
+      params: { cluster: 'prod-europe', image: imageUri }
+    }),
+    agent.executeTool({
+      toolName: 'deploy-azure-aks',
+      params: { cluster: 'prod-asia', image: imageUri }
+    })
+  ]);
+
+  // Update global load balancer
+  await agent.executeTool({
+    toolName: 'update-global-load-balancer',
+    params: {
+      service: 'company-api',
+      backends: deployments.map(d => d.endpoint)
+    }
+  });
+}
+```
+
+---
+
+## Real-World Benefits
+
+By automating DevOps workflows with **MCP servers for developers**:
+
+- ✅ **10x faster** deployments (minutes → seconds)
+- ✅ **99.99%** uptime (continuous monitoring)
+- ✅ **50% fewer** incidents (early detection)
+- ✅ **5x faster** incident response (auto-remediation)
+- ✅ **24/7 operations** (AI-driven management)
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="GitHub Automation"
+    href="/use-cases/github-automation"
+  >
+    Automate GitHub workflows with MCP servers for developers.
+  </Card>
+
+  <Card
+    title="Jira + Slack Workflows"
+    href="/use-cases/jira-slack-workflows"
+  >
+    Integrate issue tracking and team communication.
+  </Card>
+
+  <Card
+    title="Real-World Examples"
+    href="/examples/real-world-workflows"
+  >
+    See complete production workflows.
+  </Card>
+
+  <Card
+    title="Try Live"
+    href="https://www.agent-corex.com"
+  >
+    Start automating infrastructure now.
+  </Card>
+</CardGroup>
+
+---
+
+**MCP Servers in AI Applications** make DevOps intelligent. Start optimizing your infrastructure today! 🚀

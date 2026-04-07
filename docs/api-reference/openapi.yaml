@@ -1,0 +1,665 @@
+openapi: 3.0.0
+info:
+  title: Agent-CoreX API
+  description: Dynamic tool retrieval and execution for AI agents using MCP servers
+  version: 1.0.0
+  contact:
+    name: Agent-CoreX Support
+    email: support@agent-corex.com
+    url: https://github.com/anthropics/agent-corex
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.agent-corex.com/v1
+    description: Production API
+  - url: https://staging-api.agent-corex.com/v1
+    description: Staging API
+  - url: http://localhost:3000/v1
+    description: Local development
+
+security:
+  - bearerAuth: []
+  - apiKey: []
+
+paths:
+  /retrieve_tools:
+    post:
+      summary: Retrieve tools by natural language query
+      description: |
+        Find available tools using natural language. Tools are ranked by relevance to your query.
+        Supports semantic search and intelligent ranking based on popularity and user history.
+      operationId: retrieveTools
+      tags:
+        - Tools
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetrieveToolsRequest'
+            examples:
+              simple_query:
+                summary: Simple query
+                value:
+                  query: "Create a GitHub pull request"
+                  top_k: 5
+              complex_query:
+                summary: Complex multi-tool query
+                value:
+                  query: "Create GitHub PR, deploy to AWS Lambda, notify Slack channel"
+                  top_k: 10
+              filtered_query:
+                summary: Query with filters
+                value:
+                  query: "Deploy application"
+                  top_k: 5
+                  filter:
+                    server: "aws-mcp"
+                    category: "infrastructure"
+      responses:
+        '200':
+          description: Tools retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveToolsResponse'
+              examples:
+                success:
+                  summary: Successful response
+                  value:
+                    success: true
+                    data:
+                      tools:
+                        - name: "create-pull-request"
+                          server: "github-mcp"
+                          score: 0.98
+                          description: "Create a new pull request on GitHub"
+                          inputSchema:
+                            type: object
+                            properties:
+                              repository:
+                                type: string
+                              title:
+                                type: string
+                        - name: "deploy-aws-lambda"
+                          server: "aws-mcp"
+                          score: 0.95
+                          description: "Deploy function to AWS Lambda"
+                      query_time_ms: 45
+                    meta:
+                      request_id: "req_123abc"
+                      timestamp: "2024-01-15T10:30:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /tools/{tool_name}:
+    get:
+      summary: Get detailed tool information
+      description: Retrieve complete information about a specific tool including input/output schemas, examples, and usage.
+      operationId: getTool
+      tags:
+        - Tools
+      parameters:
+        - name: tool_name
+          in: path
+          required: true
+          description: Name of the tool
+          schema:
+            type: string
+          example: "create-pull-request"
+      responses:
+        '200':
+          description: Tool information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetToolResponse'
+              examples:
+                github_tool:
+                  summary: GitHub tool example
+                  value:
+                    success: true
+                    data:
+                      name: "create-pull-request"
+                      server: "github-mcp"
+                      description: "Create a new pull request on GitHub"
+                      category: "version-control"
+                      tags: ["github", "git", "pr", "collaboration"]
+                      inputSchema:
+                        type: object
+                        properties:
+                          repository:
+                            type: string
+                          title:
+                            type: string
+                          from_branch:
+                            type: string
+                          to_branch:
+                            type: string
+                      outputSchema:
+                        type: object
+                        properties:
+                          pr_number:
+                            type: integer
+                          pr_url:
+                            type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /execute_tool:
+    post:
+      summary: Execute a tool
+      description: |
+        Execute a tool with specified parameters. Returns the result of the tool execution.
+        The tool must be available (connected via MCP server) and you must have proper authentication.
+      operationId: executeTool
+      tags:
+        - Tools
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteToolRequest'
+            examples:
+              create_pr:
+                summary: Create a GitHub PR
+                value:
+                  tool_name: "create-pull-request"
+                  params:
+                    repository: "owner/repo"
+                    title: "Add new feature"
+                    from_branch: "feature/x"
+                    to_branch: "main"
+                    body: "This PR adds a new feature"
+              deploy:
+                summary: Deploy to AWS
+                value:
+                  tool_name: "deploy-aws-lambda"
+                  params:
+                    function_name: "my-function"
+                    zip_file: "function.zip"
+                    environment: "production"
+      responses:
+        '200':
+          description: Tool executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteToolResponse'
+              examples:
+                success:
+                  summary: Successful execution
+                  value:
+                    success: true
+                    data:
+                      tool_name: "create-pull-request"
+                      status: "success"
+                      result:
+                        pr_number: 123
+                        pr_url: "https://github.com/owner/repo/pull/123"
+                        created_at: "2024-01-15T10:30:00Z"
+                      execution_time_ms: 245
+                      tokens_used:
+                        input: 150
+                        output: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "TOOL_NOT_FOUND"
+                  message: "Tool 'create-pull-request' not found or not connected"
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /tools:
+    get:
+      summary: List all available tools
+      description: Get a paginated list of all available tools in the marketplace.
+      operationId: listTools
+      tags:
+        - Tools
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of tools to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+        - name: server
+          in: query
+          schema:
+            type: string
+          description: Filter by MCP server name
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by tool category
+      responses:
+        '200':
+          description: Tools listed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListToolsResponse'
+
+  /servers:
+    get:
+      summary: List connected MCP servers
+      description: Get a list of all connected MCP servers and their status.
+      operationId: listServers
+      tags:
+        - Servers
+      responses:
+        '200':
+          description: Servers listed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListServersResponse'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the API.
+      operationId: healthCheck
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    RetrieveToolsRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language query to find tools
+          maxLength: 500
+          example: "Create a GitHub pull request and deploy to production"
+        top_k:
+          type: integer
+          description: Number of tools to return (max 50)
+          default: 5
+          minimum: 1
+          maximum: 50
+        filter:
+          type: object
+          description: Optional filters for results
+          properties:
+            server:
+              type: string
+              description: Filter by MCP server name
+            category:
+              type: string
+              description: Filter by tool category
+            min_score:
+              type: number
+              description: Minimum relevance score (0.0 to 1.0)
+              minimum: 0
+              maximum: 1
+        user_id:
+          type: string
+          description: Override current user (admin only)
+
+    RetrieveToolsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            tools:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tool'
+            query_time_ms:
+              type: integer
+              description: Time taken to process query in milliseconds
+            total_tools_searched:
+              type: integer
+              description: Total tools in the index
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    Tool:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Unique tool identifier
+        server:
+          type: string
+          description: MCP server that provides this tool
+        score:
+          type: number
+          format: float
+          description: Relevance score (0.0 to 1.0)
+          minimum: 0
+          maximum: 1
+        description:
+          type: string
+          description: Human-readable tool description
+        category:
+          type: string
+          description: Tool category
+        inputSchema:
+          type: object
+          description: JSON Schema for tool input parameters
+        outputSchema:
+          type: object
+          description: JSON Schema for tool output
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tool tags for classification
+
+    GetToolResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            name:
+              type: string
+            server:
+              type: string
+            description:
+              type: string
+            category:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+            inputSchema:
+              type: object
+            outputSchema:
+              type: object
+            examples:
+              type: array
+              items:
+                type: object
+                properties:
+                  input:
+                    type: object
+                  output:
+                    type: object
+            authentication_required:
+              type: string
+            rate_limit:
+              type: object
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ExecuteToolRequest:
+      type: object
+      required:
+        - tool_name
+        - params
+      properties:
+        tool_name:
+          type: string
+          description: Name of the tool to execute
+          example: "create-pull-request"
+        params:
+          type: object
+          description: Tool-specific parameters
+          additionalProperties: true
+        timeout:
+          type: integer
+          description: Execution timeout in milliseconds
+          default: 30000
+          minimum: 1000
+          maximum: 300000
+        user_id:
+          type: string
+          description: Override current user (admin only)
+
+    ExecuteToolResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            tool_name:
+              type: string
+            status:
+              type: string
+              enum: ["success", "failure", "timeout"]
+            result:
+              type: object
+              description: Tool execution result
+              additionalProperties: true
+            error:
+              type: object
+              description: Error details if execution failed
+            execution_time_ms:
+              type: integer
+            tokens_used:
+              type: object
+              properties:
+                input:
+                  type: integer
+                output:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ListToolsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tool'
+            pagination:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                offset:
+                  type: integer
+                total:
+                  type: integer
+                has_more:
+                  type: boolean
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ListServersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            servers:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                    enum: ["connected", "disconnected", "error"]
+                  tool_count:
+                    type: integer
+                  last_checked:
+                    type: string
+                    format: date-time
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - INVALID_REQUEST
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - RATE_LIMITED
+                - SERVER_ERROR
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ResponseMeta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          description: Unique request identifier
+        timestamp:
+          type: string
+          format: date-time
+          description: Request timestamp
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["healthy", "degraded", "unhealthy"]
+        timestamp:
+          type: string
+          format: date-time
+        uptime_seconds:
+          type: integer
+        version:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from dashboard
+    apiKey:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key in format "Bearer YOUR_API_KEY"
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimited:
+      description: Too many requests
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Tools
+    description: Tool discovery and execution
+  - name: Servers
+    description: MCP server management
+  - name: System
+    description: System and health endpoints
+
+externalDocs:
+  description: Full documentation
+  url: https://docs.agent-corex.com

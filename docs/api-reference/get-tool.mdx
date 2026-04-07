@@ -1,0 +1,212 @@
+---
+title: 'Get Tool Endpoint'
+description: 'Complete reference for the /tools/{tool_name} API endpoint to get tool details.'
+---
+
+## Get Tool Endpoint
+
+**GET** `/v1/tools/{tool_name}`
+
+Retrieve detailed information about a specific tool.
+
+---
+
+## Path Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tool_name` | string | Yes | Name of the tool |
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "name": "create-pull-request",
+    "server": "github-mcp",
+    "description": "Create a new pull request on GitHub",
+    "category": "version-control",
+    "tags": ["github", "git", "pr", "collaboration"],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "description": "Repository in owner/repo format"
+        },
+        "title": {
+          "type": "string",
+          "description": "Pull request title"
+        },
+        "from_branch": {
+          "type": "string",
+          "description": "Source branch name"
+        },
+        "to_branch": {
+          "type": "string",
+          "description": "Target branch name"
+        },
+        "body": {
+          "type": "string",
+          "description": "Optional PR description"
+        }
+      },
+      "required": ["repository", "title", "from_branch", "to_branch"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "pr_number": {
+          "type": "integer",
+          "description": "PR number"
+        },
+        "pr_url": {
+          "type": "string",
+          "description": "PR URL"
+        },
+        "status": {
+          "type": "string",
+          "description": "PR status (open, draft, etc)"
+        }
+      }
+    },
+    "examples": [
+      {
+        "name": "Create simple PR",
+        "input": {
+          "repository": "owner/repo",
+          "title": "Add new feature",
+          "from_branch": "feature/new",
+          "to_branch": "main"
+        },
+        "output": {
+          "pr_number": 123,
+          "pr_url": "https://github.com/owner/repo/pull/123",
+          "status": "open"
+        }
+      }
+    ],
+    "authentication_required": "github_token",
+    "rate_limit": {
+      "requests_per_hour": 60
+    }
+  },
+  "meta": {
+    "request_id": "req_xyz789",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+## Examples
+
+### Get Tool Details
+
+```bash
+curl -X GET "https://api.agent-corex.com/v1/tools/create-pull-request" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Using SDK
+
+```javascript
+const tool = await agent.getTool('create-pull-request');
+
+console.log(tool.name);        // "create-pull-request"
+console.log(tool.description); // "Create a new PR..."
+console.log(tool.inputSchema); // JSON Schema
+```
+
+---
+
+## Use Cases
+
+### Validate Parameters Before Execution
+
+```javascript
+const tool = await agent.getTool('create-pull-request');
+
+// Check if required parameters match our data
+const params = {
+  repository: 'owner/repo',
+  title: 'New feature'
+};
+
+const missing = tool.inputSchema.required.filter(
+  field => !(field in params)
+);
+
+if (missing.length > 0) {
+  console.error(`Missing required fields: ${missing.join(', ')}`);
+} else {
+  // Safe to execute
+}
+```
+
+### Display Tool Picker UI
+
+```javascript
+const tools = await agent.retrieveTools({query: "deploy"});
+
+for (const toolSummary of tools) {
+  // Get full details for UI
+  const tool = await agent.getTool(toolSummary.name);
+  
+  // Display in UI
+  console.log(tool.description);
+  console.log(`Auth required: ${tool.authentication_required}`);
+  console.log(`Rate limit: ${tool.rate_limit.requests_per_hour}/hour`);
+}
+```
+
+---
+
+## Error Responses
+
+### Tool Not Found (404)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Tool 'invalid-tool' not found"
+  }
+}
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Execute Tools"
+    href="/api-reference/execute-tool"
+  >
+    Run tools with the execution API.
+  </Card>
+
+  <Card
+    title="Retrieve Tools"
+    href="/api-reference/retrieve-tools"
+  >
+    Find tools by query.
+  </Card>
+
+  <Card
+    title="API Overview"
+    href="/api-reference/overview"
+  >
+    Complete API reference.
+  </Card>
+</CardGroup>
+
+---
+
+Use this endpoint to get tool details before executing! 🚀

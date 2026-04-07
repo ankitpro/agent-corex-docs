@@ -1,0 +1,191 @@
+---
+title: 'Retrieve Tools Endpoint'
+description: 'Complete reference for the /retrieve_tools API endpoint with examples and error handling.'
+---
+
+## Retrieve Tools Endpoint
+
+**POST** `/v1/retrieve_tools`
+
+Find available tools using natural language query.
+
+---
+
+## Request Body
+
+```json
+{
+  "query": "Deploy to production and notify the team",
+  "top_k": 5,
+  "filter": {
+    "server": "aws-mcp",
+    "category": "infrastructure",
+    "min_score": 0.85
+  }
+}
+```
+
+### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `query` | string | Yes | - | Natural language query (max 500 chars) |
+| `top_k` | integer | No | 5 | Number of tools to return (1-50) |
+| `filter` | object | No | - | Filter results |
+| `filter.server` | string | No | - | Filter by MCP server name |
+| `filter.category` | string | No | - | Filter by tool category |
+| `filter.min_score` | number | No | 0.0 | Minimum relevance score |
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "tools": [
+      {
+        "name": "deploy-aws-ecs",
+        "server": "aws-mcp",
+        "score": 0.98,
+        "description": "Deploy to AWS ECS cluster",
+        "category": "infrastructure",
+        "tags": ["aws", "deployment", "ecs"]
+      }
+    ],
+    "query_time_ms": 45,
+    "total_tools_searched": 156
+  },
+  "meta": {
+    "request_id": "req_abc123",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+## Examples
+
+### Simple Query
+
+```bash
+curl -X POST "https://api.agent-corex.com/v1/retrieve_tools" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Send a Slack message"
+  }'
+```
+
+### With Filters
+
+```bash
+curl -X POST "https://api.agent-corex.com/v1/retrieve_tools" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Deploy",
+    "top_k": 10,
+    "filter": {
+      "server": "aws-mcp",
+      "min_score": 0.80
+    }
+  }'
+```
+
+### Using SDK
+
+```javascript
+const tools = await agent.retrieveTools({
+  query: "Deploy to production",
+  topK: 5
+});
+
+console.log(tools);
+```
+
+---
+
+## Error Responses
+
+### Bad Request (400)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Query is required",
+    "details": {
+      "parameter": "query"
+    }
+  }
+}
+```
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid API key"
+  }
+}
+```
+
+### Rate Limited (429)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Too many requests",
+    "retry_after": 60
+  }
+}
+```
+
+---
+
+## Performance Tips
+
+1. **Be specific** - "Deploy to AWS Lambda" returns better results than "deploy"
+2. **Use filters** - Reduce search space with server/category filters
+3. **Set appropriate top_k** - Usually 3-5 is sufficient
+4. **Cache results** - Same queries within 1 hour use cache
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Execute Tool Endpoint"
+    href="/api-reference/execute-tool"
+  >
+    Run tools with the execution API.
+  </Card>
+
+  <Card
+    title="Get Tool Endpoint"
+    href="/api-reference/get-tool"
+  >
+    Get details about specific tools.
+  </Card>
+
+  <Card
+    title="API Overview"
+    href="/api-reference/overview"
+  >
+    Complete API reference.
+  </Card>
+</CardGroup>
+
+---
+
+See [Dynamic Retrieval](/core-concepts/dynamic-retrieval) for details on how tools are ranked. 🚀

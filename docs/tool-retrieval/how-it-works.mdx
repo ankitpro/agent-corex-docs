@@ -1,0 +1,149 @@
+---
+title: 'How Tool Retrieval Works'
+description: 'Complete guide to the Agent-CoreX tool retrieval system and semantic search.'
+---
+
+## How Tool Retrieval Works
+
+The Tool Retrieval API is the heart of Agent-CoreX. It enables agents to **dynamically discover tools using natural language** rather than hardcoding them upfront.
+
+---
+
+## The Retrieval Process
+
+When you call `/retrieve_tools`:
+
+```
+Your Query:
+"Deploy to production and notify the team"
+        ↓
+1. Tokenization & Intent Analysis
+2. Vector Embedding (384-dim)
+3. Semantic Search in Qdrant (HNSW index)
+4. Candidate Ranking (Multi-factor algorithm)
+5. Filtering & Return Top-K
+        ↓
+Results:
+[
+  {name: "deploy-production", score: 0.98},
+  {name: "send-slack-message", score: 0.94},
+  ...
+]
+```
+
+---
+
+## API Endpoint
+
+```bash
+POST /v1/retrieve_tools
+```
+
+### Request
+
+```json
+{
+  "query": "Deploy to production and notify the team",
+  "top_k": 5,
+  "filter": {
+    "server": "aws-mcp"  // optional
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "tools": [
+      {
+        "name": "deploy-production",
+        "server": "aws-mcp",
+        "score": 0.98,
+        "description": "Deploy to production environment"
+      }
+    ],
+    "query_time_ms": 45
+  }
+}
+```
+
+---
+
+## Key Features
+
+### 1. Semantic Understanding
+
+Understands synonyms and concepts:
+- "deploy" = "ship" = "release" = "push to prod"
+- "notify" = "alert" = "message" = "send to team"
+
+### 2. Multi-Server Support
+
+Returns tools from ALL connected MCP servers in one query.
+
+### 3. Intelligent Ranking
+
+Tools ranked by relevance, popularity, user history, and performance.
+
+### 4. Fast (<50ms)
+
+Vector search is highly optimized for speed.
+
+---
+
+## Use in Your Application
+
+```javascript
+// Retrieve tools
+const tools = await agent.retrieveTools({
+  query: "Deploy to production and notify Slack"
+});
+
+// Get most relevant tool
+const topTool = tools[0];
+
+// Or process all tools
+for (const tool of tools) {
+  console.log(`${tool.name} (${tool.score})`);
+}
+
+// Then execute
+const result = await agent.executeTool({
+  toolName: topTool.name,
+  params: { /* ... */ }
+});
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Dynamic Retrieval Details"
+    href="/core-concepts/dynamic-retrieval"
+  >
+    Deep dive into ranking algorithm.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/retrieve-tools"
+  >
+    Full API documentation.
+  </Card>
+
+  <Card
+    title="Sample Queries"
+    href="/examples/sample-queries"
+  >
+    Real-world examples.
+  </Card>
+</CardGroup>
+
+---
+
+**Key Takeaway:** Tool Retrieval transforms how agents find the right tools. More specific queries yield better results. 🚀

@@ -1,0 +1,523 @@
+---
+title: 'Tool Lifecycle'
+description: 'Complete journey of a tool from registration through execution and monitoring in Agent-CoreX.'
+---
+
+## Tool Lifecycle in Agent-CoreX
+
+Understanding how tools move through the system helps you leverage Agent-CoreX effectively. Here's the complete journey.
+
+---
+
+## Phase 1: Registration
+
+When an MCP server connects to Agent-CoreX, its tools are automatically registered.
+
+### How Registration Works
+
+```
+Your MCP Server (GitHub, Slack, etc.)
+        ↓
+Sends: MCP_INIT message with tool list
+        ↓
+Agent-CoreX receives:
+{
+  "tools": [
+    {
+      "name": "create-pull-request",
+      "description": "Create a new PR on GitHub",
+      "inputSchema": { ... }
+    },
+    {
+      "name": "list-issues",
+      "description": "List issues in a repository",
+      "inputSchema": { ... }
+    }
+  ]
+}
+        ↓
+Validation:
+- Tool names are unique
+- Schemas are valid JSON Schema
+- Required fields present
+        ↓
+Status: ✅ Registered & Ready
+```
+
+### Registration Requirements
+
+For a tool to be registered, it must include:
+
+```json
+{
+  "name": "string",                    // Required: unique identifier
+  "description": "string",             // Required: human-readable description
+  "inputSchema": {                     // Required: JSON Schema
+    "type": "object",
+    "properties": { ... },
+    "required": [...]
+  }
+}
+```
+
+**Example: Valid Tool Registration**
+
+```json
+{
+  "name": "create-pull-request",
+  "description": "Create a new pull request on GitHub. Requires repository name, branch names, and PR details.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repository": {
+        "type": "string",
+        "description": "Repository in owner/repo format"
+      },
+      "title": {
+        "type": "string",
+        "description": "PR title"
+      },
+      "from_branch": {
+        "type": "string",
+        "description": "Source branch"
+      },
+      "to_branch": {
+        "type": "string",
+        "description": "Target branch (usually main)"
+      }
+    },
+    "required": ["repository", "title", "from_branch", "to_branch"]
+  }
+}
+```
+
+---
+
+## Phase 2: Indexing
+
+Once registered, tools are indexed in the vector database for fast retrieval.
+
+### Indexing Process
+
+```
+Raw Tool Data
+        ↓
+1. Parse & Validate
+   - Extract metadata
+   - Validate schemas
+   - Check for duplicates
+        ↓
+2. Generate Embeddings
+   - Embed tool name (20% weight)
+   - Embed description (60% weight)
+   - Embed parameter names (20% weight)
+   - Store multi-dimensional vectors
+        ↓
+3. Store in Vector DB
+   - Qdrant or similar vector database
+   - Index by tool name (exact match)
+   - Index by vector (semantic match)
+   - Add metadata for filtering
+        ↓
+4. Cache Layer
+   - Hot tools cached in memory
+   - Popular servers cached
+   - TTL: 1 hour
+        ↓
+Status: ✅ Indexed & Searchable
+```
+
+### What Gets Indexed
+
+The system indexes:
+
+| Component | Purpose | Weight |
+|-----------|---------|--------|
+| Tool name | Exact matching | 20% |
+| Description | Semantic meaning | 60% |
+| Parameters | What the tool needs | 10% |
+| Server name | Grouping | 5% |
+| Tags | Category matching | 5% |
+
+**Example: Indexed Tool**
+
+```
+Tool: create-pull-request
+
+Vectors:
+- name_vector: [0.12, 0.45, ..., 0.89]    (20 dim)
+- desc_vector: [0.34, 0.22, ..., 0.71]    (384 dim)
+- param_vector: [0.56, 0.88, ..., 0.33]   (128 dim)
+
+Metadata:
+- server: "github-mcp"
+- category: "version-control"
+- popularity: 0.92
+- tags: ["github", "git", "pr", "automation"]
+```
+
+---
+
+## Phase 3: Discovery
+
+When an agent queries for tools, the discovery phase runs.
+
+### Discovery Workflow
+
+```
+Agent Query: "Create a GitHub pull request"
+        ↓
+Step 1: Query Preprocessing
+- Normalize text (lowercase, remove punctuation)
+- Tokenize: ["create", "github", "pull", "request"]
+- Extract entities: intent=create, target=github/pr
+        ↓
+Step 2: Vector Embedding
+- Convert query to vector (same model as tools)
+- Produce 384-dimensional vector
+        ↓
+Step 3: Semantic Search
+- Query vector DB for similar tools
+- Return top 50 candidates by cosine similarity
+- Candidates: [
+    {score: 0.97, name: "create-pull-request"},
+    {score: 0.91, name: "create-github-issue"},
+    {score: 0.88, name: "fork-repository"},
+    ...
+  ]
+        ↓
+Step 4: Re-Ranking
+- Apply ranking algorithm (next section)
+- Filter by user permissions
+- Apply contextual boosts
+        ↓
+Step 5: Return Top-K
+- Default K=5, user can request up to 50
+- Return tool metadata + scores
+        ↓
+Agent receives: [
+  {name: "create-pull-request", score: 0.98},
+  {name: "create-github-issue", score: 0.91},
+  ...
+]
+```
+
+### Search Complexity
+
+Agent-CoreX scales efficiently even with 100+ tools:
+
+| Tools | Search Time | DB Queries | Cache Hit |
+|-------|------------|-----------|-----------|
+| 10 | 8ms | 1 | N/A |
+| 50 | 12ms | 1 | N/A |
+| 100 | 18ms | 1 | 95% |
+| 500 | 25ms | 1 | 98% |
+| 1000+ | 45ms | 1 | 99% |
+
+**Why fast?**
+- Single vector DB query (not sequential)
+- Caching of popular tools
+- Filtered search (e.g., GitHub tools only)
+
+---
+
+## Phase 4: Selection & Execution
+
+Agent chooses tools and executes them.
+
+### Execution Flow
+
+```
+Tool List from Discovery:
+[
+  {name: "create-pull-request", score: 0.98},
+  {name: "deploy-pr-preview", score: 0.89}
+]
+        ↓
+Agent Decision:
+"I want to use create-pull-request with these params:
+{
+  repository: 'owner/repo',
+  title: 'New feature',
+  from_branch: 'feature/x',
+  to_branch: 'main'
+}"
+        ↓
+Validation:
+- Tool exists? ✅
+- Params match schema? ✅
+- User has permission? ✅
+- Rate limit OK? ✅
+        ↓
+Routing:
+- Look up tool's MCP server (GitHub MCP)
+- Get credentials for server (decrypted from vault)
+- Prepare MCP call
+        ↓
+Execution:
+MCP_CALL {
+  method: "tools/call",
+  params: {
+    name: "create-pull-request",
+    arguments: { /* params */ }
+  }
+}
+        ↓
+GitHub API Call:
+POST /repos/owner/repo/pulls
+{
+  "title": "New feature",
+  "head": "feature/x",
+  "base": "main"
+}
+        ↓
+Result:
+{
+  "success": true,
+  "pull_request": {
+    "id": 123,
+    "url": "https://github.com/owner/repo/pull/123"
+  }
+}
+        ↓
+Return to Agent:
+{
+  "status": "success",
+  "output": { /* result */ }
+}
+```
+
+### Parallel Execution
+
+Agent-CoreX supports parallel tool execution:
+
+```javascript
+// Execute multiple tools in parallel
+const results = await Promise.all([
+  agent.executeTool({
+    toolName: "create-pull-request",
+    params: { /* ... */ }
+  }),
+  agent.executeTool({
+    toolName: "send-slack-message",
+    params: { /* ... */ }
+  }),
+  agent.executeTool({
+    toolName: "create-jira-issue",
+    params: { /* ... */ }
+  })
+]);
+
+// All three tools run simultaneously
+// Results aggregated and returned
+```
+
+---
+
+## Phase 5: Monitoring & Learning
+
+Agent-CoreX continuously monitors tool performance and learns from usage.
+
+### Monitoring Metrics
+
+Every tool execution is tracked:
+
+```
+Event: Tool Executed
+{
+  "tool_name": "create-pull-request",
+  "server": "github-mcp",
+  "user_id": "user_123",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "duration_ms": 245,
+  "status": "success",
+  "input_tokens": 150,
+  "output_tokens": 200,
+  "error": null
+}
+```
+
+**Metrics Collected:**
+- **Performance:** Execution time, success rate, error rate
+- **Usage:** User patterns, tool popularity, co-occurrence
+- **Quality:** Token usage, response quality (if rated)
+- **Reliability:** Uptime, error types, retry behavior
+
+### Learning & Optimization
+
+The system uses metrics to improve:
+
+```
+┌────────────────────────┐
+│ Tool Usage Data        │
+│ (Collected Daily)      │
+└─────────────┬──────────┘
+              │
+┌─────────────▼──────────┐
+│ Analyze Patterns       │
+│ - Which tools work?    │
+│ - User preferences     │
+│ - Error rates          │
+└─────────────┬──────────┘
+              │
+┌─────────────▼──────────────┐
+│ Update Ranking Weights     │
+│ - Popularity: +2% if used  │
+│ - Reliability: -5% if error│
+│ - User history: +10% reuse │
+└─────────────┬──────────────┘
+              │
+┌─────────────▼──────────────┐
+│ Next Query Benefits        │
+│ - Tools ranked better      │
+│ - Personalized results     │
+│ - Less failures            │
+└────────────────────────────┘
+```
+
+### Performance Improvements Over Time
+
+Example progression for a user:
+
+```
+Day 1:
+- Query: "Deploy to production"
+- Result: [terraform, ansible, docker]
+- User picks: terraform (success!)
+
+Day 2:
+- Query: "Deploy to production"
+- Result: [terraform, docker, ansible]
+  ↑ terraform moved higher (user used it)
+
+Day 3-7:
+- User uses terraform 5 more times
+- terraform moves to top position consistently
+- Other tools deprioritized for this user
+
+Result: Faster, more relevant results over time
+```
+
+---
+
+## Complete Tool Lifecycle Timeline
+
+```
+Time: 0s (Tool Added)
+├─ MCP server registers tool
+├─ Tool stored in database
+└─ Status: Waiting for indexing
+
+Time: 5s
+├─ Tool metadata extracted
+├─ Vectors generated
+├─ Added to vector index
+└─ Status: Discoverable
+
+Time: 10s-∞
+├─ First query uses tool
+├─ Metrics collected
+├─ Ranking weights updated
+├─ Cached for hot access
+└─ Status: Optimized
+
+Time: ∞ (Tool Deprecated)
+├─ Tool usage drops
+├─ Ranking weight decreases
+├─ Still available but lower score
+└─ Status: Available but not recommended
+```
+
+---
+
+## Best Practices for Tool Creators
+
+If you're building MCP servers, follow these guidelines for optimal lifecycle:
+
+### 1. Clear Descriptions
+
+```javascript
+// ❌ Bad
+"name": "pr",
+"description": "Make a PR"
+
+// ✅ Good
+"name": "create-pull-request",
+"description": "Create a new pull request on GitHub. Specify source and target branches, title, and optional description. Requires GitHub authentication."
+```
+
+### 2. Complete Input Schema
+
+```javascript
+// ❌ Bad
+"inputSchema": {
+  "type": "object"
+}
+
+// ✅ Good
+"inputSchema": {
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Repository in 'owner/repo' format"
+    },
+    "title": {
+      "type": "string",
+      "description": "PR title (1-200 characters)"
+    },
+    "from_branch": { /* ... */ },
+    "to_branch": { /* ... */ }
+  },
+  "required": ["repository", "title", "from_branch", "to_branch"]
+}
+```
+
+### 3. Consistent Performance
+
+```
+Target Performance Targets:
+├─ P50: <500ms
+├─ P99: <2000ms
+├─ Error Rate: <1%
+├─ Uptime: 99.9%+
+└─ Success Rate: >95%
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Dynamic Retrieval"
+    href="/core-concepts/dynamic-retrieval"
+  >
+    Learn how ranking algorithms work.
+  </Card>
+
+  <Card
+    title="MCP Setup"
+    href="/mcp/setup-mcp-servers"
+  >
+    Create your own MCP server.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/execute-tool"
+  >
+    Execute tools via API.
+  </Card>
+
+  <Card
+    title="Monitoring"
+    href="https://www.agent-corex.com/dashboard/analytics"
+  >
+    View tool metrics and analytics.
+  </Card>
+</CardGroup>
+
+---
+
+**Key Takeaway:** Every tool in Agent-CoreX follows a journey from registration to execution to optimization. Understanding this lifecycle helps you build better agents and MCP servers. 🚀

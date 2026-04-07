@@ -1,0 +1,69 @@
+---
+title: 'Tool Ranking Algorithm'
+description: 'Learn how Agent-CoreX ranks tools by relevance, popularity, user history, and performance.'
+---
+
+## Tool Ranking Algorithm
+
+After semantic search returns candidates, the ranking algorithm determines the final order.
+
+---
+
+## The Formula
+
+```
+final_score = (
+  similarity * 0.40 +
+  popularity * 0.25 +
+  user_history * 0.20 +
+  performance * 0.15
+)
+```
+
+See [Dynamic Retrieval](/core-concepts/dynamic-retrieval) for complete details and worked examples.
+
+---
+
+## Quick Reference
+
+| Factor | Weight | Purpose |
+|--------|--------|---------|
+| **Semantic Similarity** | 40% | How well does the tool match your query? |
+| **Popularity** | 25% | How often is the tool used? |
+| **User History** | 20% | Have YOU used this tool successfully? |
+| **Performance** | 15% | Is the tool fast and reliable? |
+
+---
+
+## Example
+
+Query: "Deploy to AWS"
+
+Tool Scores:
+- deploy-aws-ecs: 0.92 (high across all factors)
+- deploy-aws-lambda: 0.88 (good but less popular)
+- deploy-terraform: 0.76 (less semantic match)
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Full Dynamic Retrieval Guide"
+    href="/core-concepts/dynamic-retrieval"
+  >
+    Deep dive with examples.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/retrieve-tools"
+  >
+    Technical details.
+  </Card>
+</CardGroup>
+
+---
+
+For detailed examples and the complete algorithm, see [Dynamic Tool Retrieval](/core-concepts/dynamic-retrieval). 🚀

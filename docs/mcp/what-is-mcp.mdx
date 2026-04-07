@@ -1,0 +1,445 @@
+---
+title: 'What is MCP? A Guide for Developers'
+description: 'Introduction to the Model Context Protocol (MCP), how MCP servers for developers work, and why MCP is essential for AI agents.'
+---
+
+## What is the Model Context Protocol (MCP)?
+
+The Model Context Protocol (MCP) is an **open standard for AI agents to interact with tools and services**. It defines how AI models can request tools, access data, and execute actions through a standardized interface.
+
+Think of MCP as the **universal adapter** that lets any AI agent (Claude, GPT, or custom) work with any tool (GitHub, Slack, Jira, or custom services).
+
+### The Problem MCP Solves
+
+Before MCP, integrating tools with AI was messy:
+
+```
+❌ Without MCP:
+Agent 1 (ChatGPT) ──→ Custom SDK for GitHub
+Agent 2 (Claude) ──→ Different API wrapper for GitHub
+Agent 3 (Custom) ──→ Yet another integration
+
+Result: Fragmented, hard to maintain, duplicated code
+```
+
+```
+✅ With MCP:
+Agent 1 ──┐
+Agent 2 ──┼─→ MCP Standard ──→ GitHub (Single integration)
+Agent 3 ──┘
+Agent 4 ──┼─→ MCP Standard ──→ Slack (Single integration)
+...
+```
+
+### How MCP Works (Simple)
+
+```
+┌──────────────────┐
+│   Your AI Agent  │
+│   (Claude, GPT)  │
+└────────┬─────────┘
+         │
+         │ "List my GitHub issues"
+         ↓
+┌──────────────────────────┐
+│  MCP (Protocol Layer)    │
+│  Standard message format │
+└────────┬────────────────┘
+         │
+         │ Convert to GitHub API call
+         ↓
+┌──────────────────┐
+│  GitHub Service  │
+│  (via MCP Server)│
+└────────┬─────────┘
+         │
+         │ Returns: [Issue 1, Issue 2, ...]
+         ↓
+┌──────────────────────────┐
+│  Agent receives results  │
+│  in standard MCP format  │
+└──────────────────────────┘
+```
+
+---
+
+## Key Concepts
+
+### 1. MCP Servers
+
+An MCP server is a **service that exposes tools through the MCP protocol**.
+
+```
+MCP Server = Tool Provider
+```
+
+**Examples:**
+- **GitHub MCP Server** - Tools for PRs, issues, deployments
+- **Slack MCP Server** - Tools for messages, channels, users
+- **Jira MCP Server** - Tools for issues, sprints, projects
+
+**Each MCP server contains:**
+- **Tools** - Actions the server can perform
+- **Resources** - Data the server can access
+- **Prompts** - Templates for agent interaction
+
+### 2. MCP Clients
+
+An MCP client is **an application or agent that uses MCP servers**.
+
+```
+MCP Client = Tool Consumer
+```
+
+**Examples:**
+- Agent-CoreX (this framework)
+- Claude (Anthropic)
+- Custom AI applications
+- Automation services
+
+### 3. Tools vs. Resources vs. Prompts
+
+| Component | Purpose | Example |
+|-----------|---------|---------|
+| **Tools** | Actions to perform | `create-pull-request`, `send-message` |
+| **Resources** | Data to read | `repository-info`, `user-profile` |
+| **Prompts** | Agent guidance | "How to deploy safely", "Code review checklist" |
+
+---
+
+## MCP in the Real World
+
+### Scenario: GitHub Automation
+
+**Without MCP:**
+
+```python
+# You need to write custom integrations for each agent
+
+# For Claude
+from anthropic import Anthropic
+import github_sdk
+
+client = Anthropic()
+github_client = github_sdk.GitHub(token="...")
+
+def github_tool(action, params):
+    # Custom integration code...
+    pass
+
+# For custom Agent
+import agent_framework
+github_integration = custom_github_wrapper(...)
+
+# For Copilot
+# Different integration needed...
+```
+
+**With MCP:**
+
+```python
+# Single MCP server, works everywhere
+
+# GitHub MCP Server
+server = MCPServer("github-mcp")
+server.add_tool("create-pull-request", handle_pr_creation)
+server.add_tool("list-issues", handle_list_issues)
+
+# Now ANY agent can use it:
+# - Claude
+# - Custom agents
+# - Copilot
+# - Agent-CoreX
+```
+
+### MCP Servers for Developers Across Platforms
+
+**MCP servers in VS Code:**
+- Run in VS Code extension
+- Provide code intelligence
+- AI-powered development
+
+**MCP servers for Claude Code:**
+- Integrated into Claude Code CLI
+- One-click installation
+- Pre-configured authentication
+
+**MCP servers for GitHub Copilot:**
+- Copilot-native tools
+- GitHub marketplace
+- Enterprise support
+
+**MCP servers in Copilot:**
+- Custom Copilot instance tools
+- Organization-wide access
+- Policy compliance
+
+---
+
+## MCP Message Flow
+
+When an agent uses an MCP tool, here's what happens:
+
+```
+Agent Request:
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "create-pull-request",
+    "arguments": {
+      "repository": "owner/repo",
+      "title": "New feature",
+      "from_branch": "feature/x",
+      "to_branch": "main"
+    }
+  }
+}
+        ↓
+MCP Server (GitHub):
+1. Receive request
+2. Validate parameters
+3. Call GitHub API
+4. Format response
+        ↓
+MCP Response:
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "success": true,
+    "data": {
+      "pr_number": 123,
+      "pr_url": "https://github.com/owner/repo/pull/123"
+    }
+  }
+}
+        ↓
+Agent receives result and continues reasoning
+```
+
+---
+
+## MCP Specification Overview
+
+MCP is built on **JSON-RPC 2.0** and defines these core methods:
+
+### Server Capabilities
+```json
+{
+  "method": "initialize",
+  "params": {
+    "capabilities": {
+      "tools": true,           // Server has tools
+      "resources": true,       // Server has resources
+      "prompts": true,         // Server has prompts
+      "logging": true          // Server supports logging
+    }
+  }
+}
+```
+
+### List Tools
+```json
+{
+  "method": "tools/list",
+  "result": {
+    "tools": [
+      {
+        "name": "create-pull-request",
+        "description": "Create a GitHub PR",
+        "inputSchema": { ... }
+      }
+    ]
+  }
+}
+```
+
+### Call Tool
+```json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "create-pull-request",
+    "arguments": { /* tool-specific params */ }
+  }
+}
+```
+
+---
+
+## Comparison: MCP vs. Other Approaches
+
+| Approach | Integration | Flexibility | Maintenance |
+|----------|-------------|------------|-------------|
+| **Direct API** | Agent-to-API | Very high | Very high |
+| **Wrapper SDK** | Agent-to-SDK | High | High |
+| **REST API** | Agent-to-REST | Medium | Medium |
+| **MCP Standard** | Agent-to-MCP | High | Low |
+
+**Why MCP wins:**
+- ✅ Standard once, works everywhere
+- ✅ Tool creators maintain one implementation
+- ✅ Agents don't need custom code per tool
+- ✅ Easy discovery and composition
+- ✅ Built for AI-first interaction
+
+---
+
+## MCP Servers in the Ecosystem
+
+Currently, there are 100+ MCP servers available:
+
+**Official/Popular:**
+- GitHub - PR, issues, deployments
+- Slack - Messages, channels, users
+- Jira - Issues, sprints, projects
+- Terraform - Infrastructure as code
+- Docker - Container operations
+- AWS CLI - AWS operations
+- Stripe - Payment operations
+
+**Community:**
+- Twitter/X tools
+- Linear issue tracking
+- Notion database access
+- Google Workspace
+- Salesforce CRM
+- Custom tools
+
+You can browse all at [MCP Marketplace](https://marketplace.agent-corex.com)
+
+---
+
+## Why Agent-CoreX + MCP?
+
+Agent-CoreX enhances MCP with:
+
+<CardGroup cols={2}>
+  <Card
+    title="Dynamic Discovery"
+    icon="search"
+  >
+    Find tools by natural language, not by name. Query "deploy to AWS" and get the right tools instantly.
+  </Card>
+
+  <Card
+    title="Intelligent Ranking"
+    icon="star"
+  >
+    Tools are ranked by relevance, popularity, and your history. Better UX, fewer wrong tool picks.
+  </Card>
+
+  <Card
+    title="Optimization"
+    icon="zap"
+  >
+    Minimize token usage, cache hot tools, and optimize context window.
+  </Card>
+
+  <Card
+    title="Unified Management"
+    icon="sliders"
+  >
+    One dashboard for 100+ MCP servers. Easy connection, monitoring, and usage analytics.
+  </Card>
+</CardGroup>
+
+---
+
+## Architecture: MCP in Agent-CoreX
+
+```
+┌────────────────────────────────────────────────────────┐
+│                  Your AI Agent                         │
+│          "Deploy to production and notify"             │
+└─────────────────────┬────────────────────────────────┘
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+        ↓                           ↓
+┌──────────────┐            ┌──────────────┐
+│  Retrieval   │            │   Direct     │
+│  (Semantic)  │            │  Execution   │
+└──────┬───────┘            └──────┬───────┘
+       │                           │
+       │ "Tools for deployment"    │ "Run this specific tool"
+       ↓                           ↓
+    ┌──────────────────────────────────────┐
+    │      MCP Manager                     │
+    │ - Server routing                     │
+    │ - Auth & credentials                 │
+    │ - Error handling                     │
+    └──────────────┬───────────────────────┘
+                   │
+        ┌──────────┼──────────┐
+        │          │          │
+        ↓          ↓          ↓
+    ┌────────┐  ┌───────┐  ┌─────────┐
+    │ GitHub │  │ Slack │  │Terraform│
+    │  MCP   │  │  MCP  │  │   MCP   │
+    └────────┘  └───────┘  └─────────┘
+        │          │          │
+        ↓          ↓          ↓
+   GitHub API  Slack API  Terraform CLI
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Setup MCP Servers"
+    href="/mcp/setup-mcp-servers"
+  >
+    Connect your first MCP server in 5 minutes.
+  </Card>
+
+  <Card
+    title="Create Your Own MCP"
+    icon="code"
+    href="/mcp/example-filesystem"
+  >
+    Build a custom MCP server.
+  </Card>
+
+  <Card
+    title="MCP Marketplace"
+    href="https://marketplace.agent-corex.com"
+  >
+    Browse 100+ MCP servers.
+  </Card>
+
+  <Card
+    title="Official MCP Spec"
+    href="https://spec.modelcontextprotocol.io"
+  >
+    Read the complete MCP specification.
+  </Card>
+</CardGroup>
+
+---
+
+## FAQ
+
+<Accordion title="Is MCP only for Claude?">
+No. MCP is a standard protocol that works with any AI agent or application. Claude (via Claude Code and Claude API) is one major user, but MCP works with GPT, custom agents, and more.
+</Accordion>
+
+<Accordion title="Do I need to learn MCP to use Agent-CoreX?">
+No. Agent-CoreX abstracts away MCP complexity. But understanding MCP helps you build better MCP servers and leverage the framework more effectively.
+</Accordion>
+
+<Accordion title="Can I create a custom MCP server?">
+Absolutely. MCP is open, and you can create custom servers for your specific needs. See [Example: Filesystem MCP](/mcp/example-filesystem) to get started.
+</Accordion>
+
+<Accordion title="Is MCP secure?">
+Yes. MCP servers handle their own authentication. Credentials are stored securely and never logged. See our [Security Guide](/mcp/security) for details.
+</Accordion>
+
+---
+
+**Key Takeaway:** MCP is the standard protocol for AI-tool interaction. Agent-CoreX adds intelligent discovery and execution on top of MCP, making it easier than ever to build AI agents with access to powerful tools. 🚀

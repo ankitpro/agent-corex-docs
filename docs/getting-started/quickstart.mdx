@@ -1,0 +1,294 @@
+---
+title: 'Quickstart Guide'
+description: 'Get Agent-CoreX running in 5 minutes with your first dynamic tool retrieval and execution.'
+---
+
+## Quickstart: Your First Agent Request
+
+This guide walks you through the basics of Agent-CoreX in under 5 minutes.
+
+### Step 1: Sign Up
+
+Go to [agent-corex.com](https://www.agent-corex.com) and create a free account. You'll get:
+
+- API key for authentication
+- Access to MCP marketplace (100+ servers)
+- 1,000 free API requests/month
+
+### Step 2: Install the SDK
+
+```bash
+npm install agent-corex
+```
+
+Or using Python:
+
+```bash
+pip install agent-corex
+```
+
+### Step 3: Make Your First Request
+
+#### JavaScript/TypeScript
+
+```javascript
+import { AgentCorex } from 'agent-corex';
+
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+// Step 1: Retrieve tools for a specific task
+const tools = await agent.retrieveTools({
+  query: "Create a GitHub PR and notify the team on Slack",
+  topK: 5
+});
+
+console.log('Available tools:', tools);
+// Output:
+// [
+//   { name: 'create-pull-request', score: 0.98 },
+//   { name: 'list-repositories', score: 0.95 },
+//   { name: 'send-slack-message', score: 0.92 },
+//   { name: 'post-comment', score: 0.88 }
+// ]
+
+// Step 2: Execute a tool
+const result = await agent.executeTool({
+  toolName: 'create-pull-request',
+  params: {
+    repository: 'owner/repo',
+    title: 'Auto-generated feature PR',
+    body: 'This PR was created automatically by Agent-CoreX',
+    fromBranch: 'feature/auto-deploy',
+    toBranch: 'main'
+  }
+});
+
+console.log('PR Created:', result);
+// {
+//   success: true,
+//   pullRequestUrl: 'https://github.com/owner/repo/pull/123'
+// }
+
+// Step 3: Chain tools (bonus!)
+await agent.executeTool({
+  toolName: 'send-slack-message',
+  params: {
+    channel: '#deployments',
+    message: `🚀 New PR created: ${result.pullRequestUrl}`
+  }
+});
+```
+
+#### Python
+
+```python
+from agent_corex import AgentCorex
+
+agent = AgentCorex(api_key="your_api_key")
+
+# Retrieve tools
+tools = agent.retrieve_tools(
+    query="Create a GitHub PR and notify the team on Slack",
+    top_k=5
+)
+
+print("Available tools:", tools)
+
+# Execute a tool
+result = agent.execute_tool(
+    tool_name="create-pull-request",
+    params={
+        "repository": "owner/repo",
+        "title": "Auto-generated feature PR",
+        "body": "Created by Agent-CoreX",
+        "from_branch": "feature/auto-deploy",
+        "to_branch": "main"
+    }
+)
+
+print("PR Created:", result)
+```
+
+#### cURL
+
+```bash
+# 1. Retrieve tools
+curl -X GET "https://api.agent-corex.com/retrieve_tools?query=Create%20a%20GitHub%20PR" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# 2. Execute a tool
+curl -X POST "https://api.agent-corex.com/execute_tool" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_name": "create-pull-request",
+    "params": {
+      "repository": "owner/repo",
+      "title": "Auto-generated feature PR",
+      "from_branch": "feature/auto-deploy",
+      "to_branch": "main"
+    }
+  }'
+```
+
+### Step 4: View Results
+
+Check your GitHub repository and Slack channel:
+
+- ✅ PR created on GitHub
+- ✅ Slack message posted
+- ✅ All done in seconds!
+
+### What Just Happened?
+
+1. **Retrieval** - Your natural language query matched against 100+ available tools
+2. **Ranking** - Tools ranked by relevance (create PR scored 0.98, notify 0.92)
+3. **Execution** - Selected tools executed in order
+4. **Results** - Returned with status and output
+
+This is the power of **dynamic tool retrieval** — your agent adapted to your request without any hardcoded configuration.
+
+## Next: Connect MCP Servers
+
+Your agent is now connected to default MCP servers. To add more tools:
+
+1. Go to [Dashboard → MCP Servers](https://www.agent-corex.com/dashboard/mcp-servers)
+2. Browse the marketplace
+3. Click "Connect" on any server
+4. Your agent instantly gains access to its tools
+
+### Popular MCP Servers to Start With
+
+<CardGroup cols={3}>
+  <Card
+    title="GitHub"
+    icon="github"
+    href="https://www.agent-corex.com/servers/github"
+  >
+    PRs, issues, deployments, CI/CD workflows
+  </Card>
+
+  <Card
+    title="Slack"
+    icon="slack"
+    href="https://www.agent-corex.com/servers/slack"
+  >
+    Messages, channels, user management
+  </Card>
+
+  <Card
+    title="Jira"
+    icon="task"
+    href="https://www.agent-corex.com/servers/jira"
+  >
+    Issues, sprints, project management
+  </Card>
+</CardGroup>
+
+## Common Patterns
+
+### Pattern 1: Search + Execute
+
+```javascript
+// Find the right tool first
+const tools = await agent.retrieveTools({
+  query: "Deploy to production using Terraform"
+});
+
+// Execute the top-ranked tool
+const deployment = await agent.executeTool({
+  toolName: tools[0].name,
+  params: { environment: 'production' }
+});
+```
+
+### Pattern 2: Multi-Step Workflow
+
+```javascript
+// Step 1: Create task
+const task = await agent.executeTool({
+  toolName: 'create-jira-issue',
+  params: { title: 'Deploy v2.0' }
+});
+
+// Step 2: Update Slack
+await agent.executeTool({
+  toolName: 'send-slack-message',
+  params: {
+    channel: '#deployments',
+    message: `New deployment task: ${task.id}`
+  }
+});
+
+// Step 3: Trigger deployment
+const deployment = await agent.executeTool({
+  toolName: 'deploy-terraform',
+  params: { version: '2.0' }
+});
+```
+
+### Pattern 3: Error Handling
+
+```javascript
+try {
+  const result = await agent.executeTool({
+    toolName: 'create-pull-request',
+    params: { /* ... */ }
+  });
+} catch (error) {
+  if (error.code === 'TOOL_NOT_FOUND') {
+    // Tool not connected, guide user to marketplace
+  } else if (error.code === 'RATE_LIMITED') {
+    // Retry with backoff
+  } else {
+    // Handle other errors
+  }
+}
+```
+
+## Troubleshooting
+
+<Accordion title="API Key not working?">
+Check that your API key is correctly set in the environment variable:
+```bash
+export AGENT_COREX_API_KEY="your_key"
+echo $AGENT_COREX_API_KEY
+```
+</Accordion>
+
+<Accordion title="Tool not found?">
+Make sure the tool is connected in your MCP Servers dashboard. Use `/retrieve_tools` to see what's available.
+</Accordion>
+
+<Accordion title="Rate limited?">
+Free tier: 1,000 requests/month. Upgrade to Pro for higher limits (100,000/month).
+</Accordion>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Core Concepts" href="/core-concepts/overview">
+    Understand how dynamic retrieval works under the hood.
+  </Card>
+
+  <Card title="MCP Servers Guide" href="/mcp/setup-mcp-servers">
+    Learn how to connect and use MCP servers for developers.
+  </Card>
+
+  <Card title="Real Use Cases" href="/use-cases/github-automation">
+    See production examples for GitHub, DevOps, and workflows.
+  </Card>
+
+  <Card title="Full API Reference" href="/api-reference/overview">
+    Dive into detailed endpoint documentation.
+  </Card>
+</CardGroup>
+
+---
+
+**Ready to build?** [Join our community Slack](https://slack.agent-corex.com) for questions and examples!

@@ -1,0 +1,452 @@
+---
+title: 'Example: Building a Filesystem MCP Server'
+description: 'Learn how to create your own MCP server by building a filesystem operations tool.'
+---
+
+## Building Your Own MCP Server
+
+This guide walks you through creating a **custom MCP server for developers** that exposes filesystem operations.
+
+---
+
+## Prerequisites
+
+- Node.js 16+
+- Basic understanding of MCP protocol
+- `agent-corex-sdk` installed
+
+---
+
+## Step 1: Initialize Project
+
+```bash
+mkdir filesystem-mcp
+cd filesystem-mcp
+npm init -y
+npm install agent-corex-sdk
+```
+
+---
+
+## Step 2: Create Server File
+
+Create `index.js`:
+
+```javascript
+import { MCPServer } from 'agent-corex-sdk';
+import fs from 'fs/promises';
+import path from 'path';
+
+const server = new MCPServer({
+  name: 'filesystem-mcp',
+  version: '1.0.0',
+  description: 'Filesystem operations for Agent-CoreX'
+});
+
+// Tool 1: Read file
+server.addTool({
+  name: 'read-file',
+  description: 'Read contents of a file',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description: 'File path to read'
+      },
+      encoding: {
+        type: 'string',
+        description: 'File encoding (default: utf-8)',
+        enum: ['utf-8', 'base64']
+      }
+    },
+    required: ['path']
+  },
+  async execute(params) {
+    try {
+      const content = await fs.readFile(params.path, params.encoding || 'utf-8');
+      return {
+        success: true,
+        content: content,
+        encoding: params.encoding || 'utf-8'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+});
+
+// Tool 2: Write file
+server.addTool({
+  name: 'write-file',
+  description: 'Write content to a file',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description: 'File path to write to'
+      },
+      content: {
+        type: 'string',
+        description: 'Content to write'
+      },
+      mode: {
+        type: 'string',
+        enum: ['write', 'append'],
+        description: 'Write mode'
+      }
+    },
+    required: ['path', 'content']
+  },
+  async execute(params) {
+    try {
+      if (params.mode === 'append') {
+        await fs.appendFile(params.path, params.content);
+      } else {
+        await fs.writeFile(params.path, params.content);
+      }
+      return {
+        success: true,
+        path: params.path,
+        mode: params.mode || 'write'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+});
+
+// Tool 3: List directory
+server.addTool({
+  name: 'list-directory',
+  description: 'List files in a directory',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description: 'Directory path'
+      },
+      recursive: {
+        type: 'boolean',
+        description: 'List recursively'
+      }
+    },
+    required: ['path']
+  },
+  async execute(params) {
+    try {
+      const files = await fs.readdir(params.path);
+      return {
+        success: true,
+        files: files,
+        count: files.length
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+});
+
+// Tool 4: Delete file
+server.addTool({
+  name: 'delete-file',
+  description: 'Delete a file',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description: 'File path to delete'
+      },
+      force: {
+        type: 'boolean',
+        description: 'Force deletion'
+      }
+    },
+    required: ['path']
+  },
+  async execute(params) {
+    try {
+      await fs.unlink(params.path);
+      return {
+        success: true,
+        path: params.path
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+});
+
+// Start server
+const port = process.env.PORT || 3000;
+server.start(port);
+console.log(`Filesystem MCP server running on port ${port}`);
+```
+
+---
+
+## Step 3: Run the Server
+
+```bash
+node index.js
+# Output: Filesystem MCP server running on port 3000
+```
+
+---
+
+## Step 4: Register with Agent-CoreX
+
+```bash
+agent-corex mcp register \
+  --name "filesystem-mcp" \
+  --url "http://localhost:3000"
+```
+
+---
+
+## Step 5: Use in Your Agent
+
+```javascript
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+// Retrieve tools
+const tools = await agent.retrieveTools({
+  query: "Read a file and list directory contents"
+});
+
+// Execute
+const fileContent = await agent.executeTool({
+  toolName: 'read-file',
+  params: {
+    path: './README.md'
+  }
+});
+
+console.log(fileContent.content);
+```
+
+---
+
+## Best Practices for Custom MCP Servers
+
+### 1. Validate Inputs
+
+```javascript
+server.addTool({
+  name: 'secure-read-file',
+  // ...
+  async execute(params) {
+    // Security: prevent path traversal
+    const normalizedPath = path.normalize(params.path);
+    if (!normalizedPath.startsWith(process.cwd())) {
+      return { success: false, error: 'Path outside allowed directory' };
+    }
+    
+    // Now safe to read
+    const content = await fs.readFile(normalizedPath);
+    return { success: true, content };
+  }
+});
+```
+
+### 2. Handle Errors Gracefully
+
+```javascript
+async execute(params) {
+  try {
+    // ...
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return { success: false, error: 'File not found' };
+    } else if (error.code === 'EACCES') {
+      return { success: false, error: 'Permission denied' };
+    } else {
+      return { success: false, error: error.message };
+    }
+  }
+}
+```
+
+### 3. Performance Optimization
+
+```javascript
+// For large operations, implement pagination
+server.addTool({
+  name: 'list-directory-paginated',
+  async execute(params) {
+    const files = await fs.readdir(params.path);
+    const page = params.page || 0;
+    const pageSize = params.pageSize || 20;
+    
+    const start = page * pageSize;
+    const paginatedFiles = files.slice(start, start + pageSize);
+    
+    return {
+      success: true,
+      files: paginatedFiles,
+      total: files.length,
+      page,
+      hasMore: start + pageSize < files.length
+    };
+  }
+});
+```
+
+---
+
+## Deploy to Production
+
+### Using Docker
+
+Create `Dockerfile`:
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "index.js"]
+```
+
+Build and run:
+
+```bash
+docker build -t filesystem-mcp .
+docker run -p 3000:3000 filesystem-mcp
+```
+
+---
+
+## Advanced Features
+
+### Add Authentication
+
+```javascript
+server.setAuthHandler((token) => {
+  // Validate token
+  return token === process.env.API_TOKEN;
+});
+```
+
+### Add Logging
+
+```javascript
+server.onToolCall((toolName, params) => {
+  console.log(`Tool: ${toolName}`);
+  console.log(`Params:`, params);
+});
+```
+
+### Add Caching
+
+```javascript
+const cache = new Map();
+
+server.addTool({
+  name: 'read-file-cached',
+  async execute(params) {
+    const cacheKey = `file:${params.path}`;
+    
+    if (cache.has(cacheKey)) {
+      return { ...cache.get(cacheKey), cached: true };
+    }
+    
+    const content = await fs.readFile(params.path, 'utf-8');
+    const result = { success: true, content };
+    
+    cache.set(cacheKey, result);
+    
+    return result;
+  }
+});
+```
+
+---
+
+## Testing Your MCP Server
+
+```javascript
+// test.js
+import { MCPClient } from 'agent-corex-sdk';
+
+const client = new MCPClient('http://localhost:3000');
+
+async function testServer() {
+  // Test read-file
+  const readResult = await client.call('read-file', {
+    path: './package.json'
+  });
+  console.log('Read result:', readResult);
+
+  // Test write-file
+  const writeResult = await client.call('write-file', {
+    path: './test.txt',
+    content: 'Hello, MCP!'
+  });
+  console.log('Write result:', writeResult);
+}
+
+testServer();
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="MCP Concepts"
+    href="/mcp/what-is-mcp"
+  >
+    Understand the protocol.
+  </Card>
+
+  <Card
+    title="Setup MCP Servers"
+    href="/mcp/setup-mcp-servers"
+  >
+    Connect your server.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/overview"
+  >
+    Full API docs.
+  </Card>
+
+  <Card
+    title="Marketplace"
+    href="https://marketplace.agent-corex.com"
+  >
+    Share your server.
+  </Card>
+</CardGroup>
+
+---
+
+**Ready to build?** Create your custom MCP server for developers and unlock unlimited possibilities! 🚀

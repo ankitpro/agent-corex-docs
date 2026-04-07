@@ -1,0 +1,500 @@
+---
+title: 'MCP Servers for Developers: A Comprehensive Guide'
+description: 'Complete guide to MCP servers for developers. Learn how MCP servers work in VS Code, Claude Code, GitHub Copilot, and Copilot.'
+---
+
+## MCP Servers for Developers: Complete Guide
+
+**MCP servers for developers** are transforming how AI agents interact with your tools and workflows. This guide covers everything you need to know about leveraging MCP servers across different platforms.
+
+---
+
+## What Are MCP Servers for Developers?
+
+MCP servers for developers are **standardized tool providers** that allow AI agents to dynamically discover and execute tools across your development ecosystem.
+
+### Core Platforms
+
+**MCP Servers in VS Code**
+- Integrated into VS Code IDE
+- One-click installation from marketplace
+- Real-time code assistance
+- 50+ pre-built servers
+
+**MCP Servers for Claude Code**
+- Native integration with Claude Code CLI
+- Pre-configured authentication
+- Seamless context passing
+- Production-ready
+
+**MCP Servers for GitHub Copilot**
+- GitHub marketplace integration
+- Enterprise-grade support
+- Inline code completions
+- Team permissions
+
+**MCP Servers in Copilot**
+- Custom Copilot instances
+- Organization-wide access
+- Policy compliance
+- Advanced customization
+
+---
+
+## Why Use MCP Servers for Developers?
+
+### Problem: Tool Fragmentation
+
+Before MCP, developers had to:
+- Learn different APIs for each tool
+- Write custom integrations for each AI platform
+- Maintain duplicate code
+- Deal with authentication chaos
+
+### Solution: Unified Standard
+
+With MCP servers for developers:
+
+```
+✅ One integration (MCP)
+✅ Works everywhere (VS Code, Claude, Copilot)
+✅ Standard format (JSON-RPC 2.0)
+✅ Easy discovery (marketplace)
+✅ Automatic authentication
+```
+
+---
+
+## Popular MCP Servers for Developers
+
+### Top 15 Most Used
+
+<CardGroup cols={2}>
+  <Card
+    title="GitHub"
+    icon="github"
+  >
+    PRs, issues, deployments, workflows, CI/CD
+  </Card>
+
+  <Card
+    title="Slack"
+    icon="slack"
+  >
+    Messages, channels, threads, user management
+  </Card>
+
+  <Card
+    title="Jira"
+    icon="task"
+  >
+    Issues, sprints, projects, workflows
+  </Card>
+
+  <Card
+    title="Terraform"
+    icon="box"
+  >
+    Infrastructure as code, state management
+  </Card>
+
+  <Card
+    title="Docker"
+    icon="box"
+  >
+    Container management, image building
+  </Card>
+
+  <Card
+    title="AWS CLI"
+    icon="cloud"
+  >
+    EC2, S3, Lambda, RDS, CloudFormation
+  </Card>
+
+  <Card
+    title="Kubernetes"
+    icon="cpu"
+  >
+    Deployment, pods, services, monitoring
+  </Card>
+
+  <Card
+    title="Linear"
+    icon="layers"
+  >
+    Issue tracking, projects, cycles
+  </Card>
+
+  <Card
+    title="Notion"
+    icon="file"
+  >
+    Database, pages, content management
+  </Card>
+
+  <Card
+    title="Stripe"
+    icon="credit-card"
+  >
+    Payments, subscriptions, customers
+  </Card>
+
+  <Card
+    title="PagerDuty"
+    icon="bell"
+  >
+    Incidents, alerts, escalation
+  </Card>
+
+  <Card
+    title="Datadog"
+    icon="chart-bar"
+  >
+    Monitoring, metrics, logs, APM
+  </Card>
+
+  <Card
+    title="GitHub Marketplace"
+    icon="shop"
+  >
+    Browse all 100+ servers
+  </Card>
+
+  <Card
+    title="Custom Servers"
+    icon="wrench"
+  >
+    Build your own MCP server
+  </Card>
+</CardGroup>
+
+---
+
+## Using MCP Servers in Different Environments
+
+### VS Code Extension
+
+```javascript
+// In VS Code with Agent-CoreX extension
+@agent-corex "Create a GitHub PR and deploy to AWS"
+// → Extension queries MCP servers
+// → Returns 8 relevant tools
+// → You select and execute
+```
+
+### Claude Code CLI
+
+```bash
+# Terminal
+agent-corex query "Create GitHub PR and deploy to AWS"
+
+# Output:
+# Available tools:
+# 1. create-pull-request (github-mcp) - 0.98
+# 2. deploy-aws-ecs (aws-mcp) - 0.96
+# ...
+
+agent-corex exec create-pull-request --repo="owner/repo" --title="Feature"
+```
+
+### GitHub Copilot
+
+```
+GitHub Copilot Chat:
+"@agent-corex retrieve tools for deploying to production"
+
+Copilot shows:
+1. deploy-aws-lambda (score: 0.98)
+2. deploy-kubernetes (score: 0.95)
+3. notify-slack (score: 0.92)
+```
+
+---
+
+## Building with MCP Servers for Developers
+
+### 1. Discover Tools
+
+```javascript
+// Query natural language
+const tools = await agent.retrieveTools({
+  query: "Deploy my app and notify the team"
+});
+
+// Get ranked results from all connected MCP servers
+```
+
+### 2. Execute Tools
+
+```javascript
+// Execute the tool
+const result = await agent.executeTool({
+  toolName: tools[0].name,
+  params: { /* tool-specific */ }
+});
+```
+
+### 3. Chain Multiple Servers
+
+```javascript
+// One query, multiple servers' tools
+const tools = await agent.retrieveTools({
+  query: "Create GitHub issue, add to Jira, notify Slack"
+});
+// Gets tools from: github-mcp, jira-mcp, slack-mcp
+```
+
+---
+
+## Authentication & Security
+
+### Secure Credential Handling
+
+Each MCP server handles authentication:
+
+```
+Your App
+  ↓
+Agent-CoreX
+  ↓ (encrypted)
+Secure Vault (AES-256)
+  ↓
+MCP Server calls
+  ↓
+GitHub API / Slack API / etc.
+
+✅ Credentials never logged
+✅ Never exposed in requests
+✅ Encrypted at rest
+✅ Audit trails preserved
+```
+
+### Supported Auth Methods
+
+| Method | Examples |
+|--------|----------|
+| **Personal Token** | GitHub PAT, GitLab Token |
+| **OAuth** | Slack, Google, Microsoft |
+| **API Key** | Jira, Stripe, Datadog |
+| **Service Account** | GCP, AWS |
+| **None** | Local tools, internal APIs |
+
+---
+
+## MCP Servers for Developers: Industry Use Cases
+
+### Software Development
+
+```
+Developer writes code in VS Code
+  ↓
+Asks Agent-CoreX: "Review this PR on GitHub"
+  ↓
+Agent uses github-mcp to:
+  - Check code quality
+  - Run tests
+  - Deploy to staging
+  - Request human review
+```
+
+### DevOps & Infrastructure
+
+```
+DevOps engineer needs deployment
+  ↓
+Agent-CoreX retrieves: terraform, kubernetes, aws tools
+  ↓
+Agent executes:
+  - Validates Terraform
+  - Deploys to Kubernetes
+  - Monitors AWS resources
+  - Alerts if issues
+```
+
+### Product & Project Management
+
+```
+PM creates new feature request
+  ↓
+Agent-CoreX creates:
+  - GitHub issue with requirements
+  - Jira ticket for tracking
+  - Slack notification for team
+  - Confluence documentation
+```
+
+---
+
+## Best Practices for MCP Servers
+
+### 1. Use Specific Queries
+
+```javascript
+// ❌ Bad
+await agent.retrieveTools({
+  query: "do stuff"
+});
+
+// ✅ Good
+await agent.retrieveTools({
+  query: "Deploy Node.js app to AWS Lambda and notify Slack #deployments"
+});
+```
+
+### 2. Check Server Status
+
+```javascript
+// Before executing, verify server is connected
+const servers = await agent.getConnectedServers();
+if (!servers.find(s => s.name === 'github-mcp')) {
+  console.log('GitHub not connected!');
+  // Guide user to connect
+}
+```
+
+### 3. Handle Failures Gracefully
+
+```javascript
+try {
+  const result = await agent.executeTool({
+    toolName: 'create-pull-request',
+    params: { /* ... */ }
+  });
+} catch (error) {
+  if (error.code === 'TOOL_NOT_FOUND') {
+    // Tool not connected
+  } else if (error.code === 'AUTH_FAILED') {
+    // Token expired or invalid
+  } else if (error.code === 'RATE_LIMITED') {
+    // Wait and retry
+  }
+}
+```
+
+### 4. Monitor Usage
+
+```bash
+# Check which MCP servers are being used
+agent-corex stats servers
+
+# Output:
+# github-mcp: 4,523 calls/month
+# slack-mcp: 2,341 calls/month
+# jira-mcp: 1,892 calls/month
+```
+
+---
+
+## Ecosystem: 100+ MCP Servers
+
+Browse all available MCP servers:
+
+- **Official** - Maintained by Agent-CoreX
+- **Partner** - Maintained by companies (GitHub, Slack, etc.)
+- **Community** - Maintained by open source contributors
+- **Custom** - Your own internal servers
+
+### Discovery
+
+```bash
+# List all servers
+agent-corex marketplace list
+
+# Search for specific server
+agent-corex marketplace search "deploy"
+
+# Get details
+agent-corex marketplace info github-mcp
+```
+
+---
+
+## Creating Custom MCP Servers
+
+Build MCP servers for your specific needs:
+
+```javascript
+import { MCPServer } from 'agent-corex-sdk';
+
+const myServer = new MCPServer({
+  name: 'my-company-mcp',
+  version: '1.0.0',
+  description: 'Custom tools for my company'
+});
+
+// Add your tools
+myServer.addTool({
+  name: 'deploy-custom-app',
+  description: 'Deploy custom application',
+  inputSchema: { /* JSON Schema */ },
+  execute: async (params) => {
+    // Your implementation
+    return { success: true };
+  }
+});
+
+// Start server
+myServer.start();
+```
+
+---
+
+## Integration with Agent-CoreX
+
+### Complete Workflow
+
+```
+1. Connect MCP Servers
+   └─ GitHub, Slack, Jira, custom servers, etc.
+
+2. Query for Tools
+   └─ "Deploy app and notify team"
+   └─ Returns ranked tools from all servers
+
+3. Execute Tools
+   └─ Run tools in sequence or parallel
+   └─ Handle results and errors
+
+4. Monitor & Improve
+   └─ Track usage, performance, success rate
+   └─ Optimize tool selection over time
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Setup MCP Servers"
+    href="/mcp/setup-mcp-servers"
+  >
+    Connect your first MCP server.
+  </Card>
+
+  <Card
+    title="GitHub Automation"
+    href="/use-cases/github-automation"
+  >
+    Use MCP servers for GitHub workflows.
+  </Card>
+
+  <Card
+    title="DevOps Automation"
+    href="/use-cases/devops-automation"
+  >
+    Deploy with MCP servers.
+  </Card>
+
+  <Card
+    title="Build Custom Server"
+    href="/mcp/example-filesystem"
+  >
+    Create your own MCP server.
+  </Card>
+</CardGroup>
+
+---
+
+**MCP servers for developers** are the foundation of intelligent automation. Start with [GitHub](https://dashboard.agent-corex.com/servers/github) and unlock powerful tool discovery! 🚀

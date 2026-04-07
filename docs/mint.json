@@ -1,0 +1,120 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Agent-CoreX Docs",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.ico",
+  "colors": {
+    "primary": "#6366f1",
+    "light": "#818cf8",
+    "dark": "#4f46e5",
+    "background": {
+      "dark": "#0f172a"
+    },
+    "anchors": {
+      "from": "#6366f1",
+      "to": "#818cf8"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "https://github.com/ankitpro/agent-corex/issues"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "https://www.agent-corex.com/signup"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Examples",
+      "url": "examples"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/ankitpro/agent-corex"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/introduction",
+        "getting-started/quickstart",
+        "getting-started/architecture"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "core-concepts/overview",
+        "core-concepts/tool-lifecycle",
+        "core-concepts/dynamic-retrieval"
+      ]
+    },
+    {
+      "group": "MCP Servers",
+      "pages": [
+        "mcp/what-is-mcp",
+        "mcp/mcp-servers-for-developers",
+        "mcp/setup-mcp-servers",
+        "mcp/example-filesystem"
+      ]
+    },
+    {
+      "group": "Tool Retrieval System",
+      "pages": [
+        "tool-retrieval/how-it-works",
+        "tool-retrieval/ranking-logic",
+        "tool-retrieval/optimization"
+      ]
+    },
+    {
+      "group": "Use Cases",
+      "pages": [
+        "use-cases/github-automation",
+        "use-cases/devops-automation",
+        "use-cases/jira-slack-workflows",
+        "use-cases/terraform-logs"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/overview",
+        "api-reference/retrieve-tools",
+        "api-reference/get-tool",
+        "api-reference/execute-tool",
+        "api-reference/openapi"
+      ]
+    },
+    {
+      "group": "Examples",
+      "pages": [
+        "examples/sample-queries",
+        "examples/execution-flow",
+        "examples/real-world-workflows"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/ankitpro/agent-corex",
+    "twitter": "https://twitter.com/ankitko0l",
+    "linkedin": "https://www.linkedin.com/in/ankitagarwal94"
+  },
+  "versions": ["v1"],
+  "modeToggle": {
+    "default": "dark",
+    "isHidden": false
+  }
+}

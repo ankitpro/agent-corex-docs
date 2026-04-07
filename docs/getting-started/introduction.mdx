@@ -1,0 +1,189 @@
+---
+title: 'What is Agent-CoreX?'
+description: 'Agent-CoreX is a dynamic MCP-based AI agent framework that enables developers to build intelligent agents with access to MCP servers for developers and enterprise tools.'
+---
+
+## Introduction to Agent-CoreX
+
+Agent-CoreX is a powerful framework for building **AI agents that dynamically discover and execute tools** using the Model Context Protocol (MCP). It's designed for developers building intelligent automation workflows that need flexible, on-demand access to MCP servers in AI applications.
+
+### Why Agent-CoreX?
+
+Traditional AI agents are limited by a fixed set of pre-configured tools. Agent-CoreX changes this by introducing **dynamic tool retrieval** — your agent can ask for the right tools when it needs them, not before.
+
+**Key Benefits:**
+
+- **Dynamic Tool Discovery** - Find the perfect tool using natural language
+- **MCP Servers for Developers** - Seamless integration with 100+ MCP servers in the ecosystem
+- **Tool Ranking & Optimization** - Intelligent selection based on your use case
+- **Zero Configuration** - Works out of the box with major MCP servers
+- **Production-Ready** - Built for enterprise workflows and DevOps automation
+
+### What Problems Does Agent-CoreX Solve?
+
+**Before Agent-CoreX:**
+```
+Agent needs GitHub + Jira + Slack
+↓
+Hardcode 3 tools at startup
+↓
+Agent can only use these 3 tools
+↓
+Adding a new tool? Rebuild everything.
+```
+
+**With Agent-CoreX:**
+```
+Agent needs tools for current task
+↓
+Query /retrieve_tools with natural language
+↓
+Get ranked, relevant tools instantly
+↓
+Execute the right tool for the job
+↓
+Dynamically adapt to any workflow
+```
+
+### Core Features
+
+<CardGroup cols={2}>
+  <Card
+    title="Tool Retrieval API"
+    icon="search"
+    href="/tool-retrieval/how-it-works"
+  >
+    Query natural language, get ranked tools instantly. No manual selection.
+  </Card>
+  
+  <Card
+    title="MCP Server Integration"
+    icon="plug"
+    href="/mcp/setup-mcp-servers"
+  >
+    Connect MCP servers for developers with built-in support for 100+ servers.
+  </Card>
+
+  <Card
+    title="Smart Ranking"
+    icon="star"
+    href="/tool-retrieval/ranking-logic"
+  >
+    AI-powered ranking ensures your agent always gets the most relevant tools.
+  </Card>
+
+  <Card
+    title="Token Optimization"
+    icon="zap"
+    href="/tool-retrieval/optimization"
+  >
+    Minimize token usage with intelligent caching and context optimization.
+  </Card>
+</CardGroup>
+
+### How It Works (High Level)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Your AI Agent                        │
+└─────────────────┬───────────────────────────────────────┘
+                  │ "I need to automate GitHub workflows"
+                  ↓
+┌─────────────────────────────────────────────────────────┐
+│            Tool Retrieval API                           │
+│        /retrieve_tools (Natural Language Query)         │
+└─────────────────┬───────────────────────────────────────┘
+                  │ Returns: ["create-pr", "deploy", "notify"]
+                  ↓
+┌─────────────────────────────────────────────────────────┐
+│              MCP Manager                                │
+│    Routes requests to appropriate MCP servers           │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+        ┌─────────┴──────────┬──────────┐
+        ↓                    ↓          ↓
+    ┌────────┐          ┌────────┐  ┌────────┐
+    │ GitHub │          │ Slack  │  │ Jira   │
+    │ MCP    │          │ MCP    │  │ MCP    │
+    └────────┘          └────────┘  └────────┘
+```
+
+### Perfect For
+
+- **DevOps Teams** - Automate infrastructure workflows with Terraform, Docker, and cloud CLIs
+- **GitHub Automation** - MCP servers for developers enabling PR reviews, CI/CD, and deployments
+- **Enterprise Workflows** - Connect Jira, Slack, and custom tools seamlessly
+- **Multi-Tool Orchestration** - Coordinate across MCP servers in VS Code, Claude Code, and Copilot
+
+### MCP Servers in AI Applications
+
+Agent-CoreX is optimized for working with **MCP servers in AI** environments:
+
+- **MCP Servers for Claude Code** - Native integration with Claude Code IDE extension
+- **MCP Servers in VS Code** - Full support for VS Code MCP marketplace
+- **MCP Servers for GitHub Copilot** - Seamless Copilot integration
+- **MCP Servers in Copilot** - Enterprise Copilot workflows
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/getting-started/quickstart"
+  >
+    Get up and running in 5 minutes with a real example.
+  </Card>
+
+  <Card
+    title="Architecture"
+    icon="building"
+    href="/getting-started/architecture"
+  >
+    Understand the complete Agent-CoreX architecture.
+  </Card>
+
+  <Card
+    title="MCP Concepts"
+    icon="book"
+    href="/mcp/what-is-mcp"
+  >
+    Learn about the Model Context Protocol and MCP servers.
+  </Card>
+
+  <Card
+    title="Try Live"
+    icon="sparkles"
+    href="https://www.agent-corex.com"
+  >
+    Start using Agent-CoreX right now — free tier available.
+  </Card>
+</CardGroup>
+
+---
+
+## FAQ
+
+<Accordion title="Is Agent-CoreX only for AI agents?">
+No. While designed for AI agents, Agent-CoreX can be used by any application that needs dynamic tool discovery and execution via MCP servers.
+</Accordion>
+
+<Accordion title="Does Agent-CoreX support custom tools?">
+Yes. You can create custom MCP servers or wrap existing tools as MCP servers and integrate them with Agent-CoreX.
+</Accordion>
+
+<Accordion title="What MCP servers does Agent-CoreX support?">
+Agent-CoreX supports 100+ MCP servers in the ecosystem, including GitHub, Jira, Slack, Terraform, Docker, and more. Check our MCP server guide for the complete list.
+</Accordion>
+
+<Accordion title="Can I use Agent-CoreX in production?">
+Absolutely. Agent-CoreX is production-ready with enterprise-grade security, rate limiting, and monitoring.
+</Accordion>
+
+<Accordion title="Do I need to use Claude Code?">
+No. While Agent-CoreX works great with Claude Code, it integrates with any application via REST API.
+</Accordion>
+
+---
+
+**Ready to build intelligent, adaptive agents?** Start with our [Quickstart Guide](/getting-started/quickstart) or explore [real-world use cases](/use-cases/github-automation).

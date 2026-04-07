@@ -1,0 +1,377 @@
+---
+title: 'Jira + Slack Integration: Team Workflows'
+description: 'Automate team workflows by connecting Jira and Slack with Agent-CoreX MCP servers.'
+---
+
+## Jira + Slack Integration: Unified Team Workflows
+
+Automate your team communication and project management by connecting **Jira and Slack using MCP servers for developers**.
+
+---
+
+## Problem: Fragmented Team Communication
+
+Teams use both Jira and Slack but they don't communicate:
+
+- Jira updates don't appear in Slack
+- Slack conversations buried in channels
+- Manual status updates
+- Duplicate work tracking
+- Lost context
+
+**Solution:** Agent-CoreX automates the sync between Jira and Slack.
+
+---
+
+## Use Case 1: Auto-Notify Slack on Jira Updates
+
+### Scenario
+
+When someone updates a Jira issue, notify the relevant Slack channel automatically.
+
+### Implementation
+
+```javascript
+const agent = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+async function onJiraIssueUpdated(issue) {
+  const tools = await agent.retrieveTools({
+    query: "Notify Slack channel about Jira issue update"
+  });
+
+  const message = formatIssueUpdate(issue);
+
+  await agent.executeTool({
+    toolName: 'send-slack-message',
+    params: {
+      channel: `#${issue.project.toLowerCase()}`,
+      message: message,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*${issue.key}: ${issue.summary}*\n${issue.description}`
+          }
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `*Status*\n${issue.status.name}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*Assignee*\n${issue.assignee.displayName}`
+            }
+          ]
+        }
+      ]
+    }
+  });
+}
+```
+
+---
+
+## Use Case 2: Create Jira Issues from Slack Messages
+
+### Scenario
+
+When someone requests a feature in Slack, automatically create a Jira ticket.
+
+### Implementation
+
+```javascript
+app.message(async ({ message, client }) => {
+  if (!message.text.includes('@create-issue')) return;
+
+  const tools = await agent.retrieveTools({
+    query: "Create Jira issue from Slack message"
+  });
+
+  const jiraIssue = await agent.executeTool({
+    toolName: 'create-jira-issue',
+    params: {
+      project: 'FEATURES',
+      title: message.text.replace('@create-issue', '').trim(),
+      description: `Created from Slack message by ${message.user}`,
+      priority: 'Medium'
+    }
+  });
+
+  await client.reactions.add({
+    channel: message.channel,
+    timestamp: message.ts,
+    emoji: 'jira'
+  });
+
+  await client.chat.postMessage({
+    channel: message.channel,
+    text: `Created Jira issue ${jiraIssue.key}`
+  });
+});
+```
+
+---
+
+## Use Case 3: Sprint Status Updates
+
+### Scenario
+
+Daily standup: Summarize sprint progress and post to Slack.
+
+### Implementation
+
+```javascript
+async function postSprintStatus() {
+  const tools = await agent.retrieveTools({
+    query: "Get Jira sprint status and summarize for Slack"
+  });
+
+  // Get sprint info
+  const sprint = await agent.executeTool({
+    toolName: 'get-current-sprint',
+    params: {
+      board: 'PLATFORM'
+    }
+  });
+
+  // Get issues
+  const issues = await agent.executeTool({
+    toolName: 'list-sprint-issues',
+    params: {
+      sprintId: sprint.id
+    }
+  });
+
+  // Summarize
+  const summary = summarizeSprintStatus(issues);
+
+  // Post to Slack
+  await agent.executeTool({
+    toolName: 'send-slack-message',
+    params: {
+      channel: '#standup',
+      message: summary
+    }
+  });
+}
+
+// Run daily at 10am
+schedule.scheduleJob('0 10 * * 1-5', postSprintStatus);
+```
+
+---
+
+## Use Case 4: Automatic Issue Assignment
+
+### Scenario
+
+When issues are created in Jira, auto-assign them to the right team in Slack based on labels.
+
+### Implementation
+
+```javascript
+async function autoAssignIssue(issue) {
+  const tools = await agent.retrieveTools({
+    query: "Assign Jira issue to team and notify Slack"
+  });
+
+  // Determine team from labels
+  const team = determineTeamFromLabels(issue.labels);
+
+  // Get team members
+  const members = await agent.executeTool({
+    toolName: 'list-slack-channel-members',
+    params: {
+      channel: `#team-${team}`
+    }
+  });
+
+  // Find available team lead
+  const assignee = findAvailableTeamMember(members);
+
+  // Assign in Jira
+  await agent.executeTool({
+    toolName: 'assign-jira-issue',
+    params: {
+      issueKey: issue.key,
+      assignee: assignee.email
+    }
+  });
+
+  // Notify in Slack
+  await agent.executeTool({
+    toolName: 'send-slack-dm',
+    params: {
+      user: assignee.slackId,
+      message: `New issue assigned: ${issue.key} - ${issue.summary}`
+    }
+  });
+}
+```
+
+---
+
+## Use Case 5: Critical Issue Escalation
+
+### Scenario
+
+When a critical issue is created, alert everyone in the incident channel.
+
+### Implementation
+
+```javascript
+async function escalateCriticalIssue(issue) {
+  if (issue.priority !== 'Critical') return;
+
+  const tools = await agent.retrieveTools({
+    query: "Notify incident team of critical Jira issue via Slack"
+  });
+
+  // Get all developers
+  const devTeam = await agent.executeTool({
+    toolName: 'list-slack-channel-members',
+    params: {
+      channel: '#incidents'
+    }
+  });
+
+  // Create mentions
+  const mentions = devTeam.members.map(m => `<@${m.id}>`).join(' ');
+
+  // Post escalation
+  await agent.executeTool({
+    toolName: 'send-slack-message',
+    params: {
+      channel: '#incidents',
+      message: `🚨 CRITICAL ISSUE: ${issue.key}`,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `${mentions}\n\n*CRITICAL:* ${issue.summary}\n${issue.description}`
+          }
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: { type: "plain_text", text: "View in Jira" },
+              url: issue.url
+            },
+            {
+              type: "button",
+              text: { type: "plain_text", text: "I'll Handle It" },
+              action_id: "take_issue"
+            }
+          ]
+        }
+      ]
+    }
+  });
+}
+```
+
+---
+
+## Complete Workflow: From Request to Resolution
+
+```
+1. Slack Request
+   User: "We need dark mode"
+   ↓
+
+2. Create Jira Issue
+   Agent creates: FEATURES-123
+   ↓
+
+3. Assign to Team
+   Assigned to: @backend-team
+   Slack notification sent
+   ↓
+
+4. Development in Progress
+   Dev updates Jira status
+   Slack channel auto-updates
+   ↓
+
+5. Code Review
+   PR created in GitHub
+   Jira linked to PR
+   Slack notified
+   ↓
+
+6. Deployment
+   Issue marked done
+   Slack celebrates! 🎉
+   ↓
+
+7. Close in Jira
+   Jira status: Done
+   Slack archives thread
+```
+
+---
+
+## Benefits
+
+✅ **Zero Context Switching**
+- All info in Slack
+- No need to check Jira separately
+
+✅ **Real-time Updates**
+- Instant Slack notifications
+- Team always informed
+
+✅ **Reduced Manual Work**
+- No manual updates
+- Automation handles sync
+
+✅ **Better Visibility**
+- Everyone sees progress
+- Easier to help teammates
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="GitHub Automation"
+    href="/use-cases/github-automation"
+  >
+    Integrate with GitHub workflows.
+  </Card>
+
+  <Card
+    title="DevOps Automation"
+    href="/use-cases/devops-automation"
+  >
+    Automate infrastructure.
+  </Card>
+
+  <Card
+    title="MCP Setup"
+    href="/mcp/setup-mcp-servers"
+  >
+    Connect Jira & Slack MCP servers.
+  </Card>
+
+  <Card
+    title="Try Live"
+    href="https://www.agent-corex.com"
+  >
+    Start automating now.
+  </Card>
+</CardGroup>
+
+---
+
+**Unified team workflows** reduce friction and improve collaboration. Start connecting Jira and Slack today! 🚀

@@ -1,0 +1,243 @@
+---
+title: 'Real-World Workflows'
+description: 'Complete end-to-end workflows you can use as templates for your own automation.'
+---
+
+## Real-World Workflows
+
+Copy-paste ready workflows for common scenarios.
+
+---
+
+## Workflow 1: Daily Standup Report
+
+Generates and posts team standup to Slack:
+
+```javascript
+// Run at 9am daily
+schedule.scheduleJob('0 9 * * 1-5', async () => {
+  const agent = new AgentCorex({apiKey: process.env.AGENT_COREX_API_KEY});
+
+  // Get sprint info
+  const sprint = await agent.executeTool({
+    toolName: 'get-current-sprint',
+    params: { board: 'PLATFORM' }
+  });
+
+  // Get issues completed
+  const completed = await agent.executeTool({
+    toolName: 'list-sprint-issues',
+    params: { 
+      sprintId: sprint.id,
+      status: 'Done'
+    }
+  });
+
+  // Get issues in progress
+  const inProgress = await agent.executeTool({
+    toolName: 'list-sprint-issues',
+    params: {
+      sprintId: sprint.id,
+      status: 'In Progress'
+    }
+  });
+
+  // Get blocked issues
+  const blocked = await agent.executeTool({
+    toolName: 'list-sprint-issues',
+    params: {
+      sprintId: sprint.id,
+      status: 'Blocked'
+    }
+  });
+
+  // Post to Slack
+  await agent.executeTool({
+    toolName: 'send-slack-message',
+    params: {
+      channel: '#standup',
+      message: `
+📊 Daily Standup - ${new Date().toLocaleDateString()}
+
+✅ Completed (${completed.length})
+${completed.map(i => `• ${i.key}: ${i.summary}`).join('\n')}
+
+🔄 In Progress (${inProgress.length})
+${inProgress.map(i => `• ${i.key}: ${i.summary}`).join('\n')}
+
+🚫 Blocked (${blocked.length})
+${blocked.map(i => `• ${i.key}: ${i.summary}`).join('\n')}
+      `
+    }
+  });
+});
+```
+
+---
+
+## Workflow 2: Incident Response
+
+Automated incident handling:
+
+See [Incident Response Example](/use-cases/devops-automation#use-case-2-incident-response--remediation)
+
+---
+
+## Workflow 3: Weekly Release
+
+Automated weekly release process:
+
+See [Release Management Example](/use-cases/github-automation#use-case-3-automated-release-management)
+
+---
+
+## Workflow 4: Code Review Automation
+
+Automated code analysis and review:
+
+See [Code Review Example](/use-cases/github-automation#use-case-4-code-review-automation)
+
+---
+
+## Workflow 5: Customer Onboarding
+
+Multi-step customer onboarding:
+
+```javascript
+async function onboardCustomer(customer) {
+  const agent = new AgentCorex({apiKey: process.env.AGENT_COREX_API_KEY});
+
+  try {
+    // Create Jira epic
+    const epic = await agent.executeTool({
+      toolName: 'create-jira-issue',
+      params: {
+        project: 'ONBOARD',
+        type: 'Epic',
+        title: `Onboarding: ${customer.name}`,
+        description: `Customer: ${customer.email}\nPlan: ${customer.plan}`
+      }
+    });
+
+    // Create GitHub org access
+    const ghOrg = await agent.executeTool({
+      toolName: 'add-github-org-member',
+      params: {
+        organization: 'company',
+        user: customer.github_username,
+        role: 'member'
+      }
+    });
+
+    // Send Slack welcome
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: `#onboarding`,
+        message: `👋 Welcome ${customer.name}!\nGitHub: ${ghOrg.url}\nOnboarding: ${epic.key}`
+      }
+    });
+
+    // Create Slack DM for onboarding guide
+    const dm = await agent.executeTool({
+      toolName: 'create-slack-dm',
+      params: {
+        user: customer.slack_id,
+        message: `Welcome to the team! 🎉\n\nHere's your onboarding guide...`
+      }
+    });
+
+    // Send welcome email
+    await agent.executeTool({
+      toolName: 'send-email',
+      params: {
+        to: customer.email,
+        subject: `Welcome to our service, ${customer.name}!`,
+        body: `Getting started guide...`
+      }
+    });
+
+    console.log('✅ Customer onboarded');
+    return { epic, ghOrg, dm };
+
+  } catch (error) {
+    console.error('❌ Onboarding failed:', error);
+    
+    // Alert admin
+    await agent.executeTool({
+      toolName: 'send-slack-message',
+      params: {
+        channel: '#operations',
+        message: `⚠️ Failed to onboard ${customer.name}: ${error.message}`
+      }
+    });
+  }
+}
+```
+
+---
+
+## More Workflows
+
+Check out the use cases section for more complete examples:
+
+<CardGroup cols={2}>
+  <Card
+    title="GitHub Automation"
+    href="/use-cases/github-automation"
+  >
+    PRs, issues, deployments.
+  </Card>
+
+  <Card
+    title="DevOps Automation"
+    href="/use-cases/devops-automation"
+  >
+    Deployments & incidents.
+  </Card>
+
+  <Card
+    title="Jira + Slack"
+    href="/use-cases/jira-slack-workflows"
+  >
+    Team workflows.
+  </Card>
+
+  <Card
+    title="Terraform"
+    href="/use-cases/terraform-logs"
+  >
+    Infrastructure automation.
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Execution Flows"
+    href="/examples/execution-flow"
+  >
+    Learn execution patterns.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/overview"
+  >
+    API documentation.
+  </Card>
+
+  <Card
+    title="Try Live"
+    href="https://www.agent-corex.com"
+  >
+    Build your own workflow.
+  </Card>
+</CardGroup>
+
+---
+
+**Ready to automate?** Pick a workflow and customize for your needs! 🚀
