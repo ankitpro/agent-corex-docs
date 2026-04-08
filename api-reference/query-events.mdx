@@ -1,0 +1,523 @@
+---
+title: 'Query Events API'
+description: 'Complete API reference for query event logging and retrieval.'
+---
+
+## Query Events API Reference
+
+The Query Events API enables logging and querying tool retrieval events for dashboard visibility and observability.
+
+---
+
+## Overview
+
+### Purpose
+
+- **Log** tool retrieval queries with metadata (selected tools, scores, source)
+- **Retrieve** historical queries for analytics and debugging
+- **Track** request origin (CLI, API, Dashboard)
+- **Monitor** tool selection patterns and performance
+
+### Base URL
+
+```
+https://api.agent-corex.com
+```
+
+---
+
+## Endpoints
+
+### `/v2/retrieve_tools` — Tool Retrieval (with Logging)
+
+**Automatically logs to query_events** when user is authenticated.
+
+**Endpoint:** `GET /v2/retrieve_tools`
+
+**Description:** Retrieve tools matching a query. Logs the request and results to `query_events` table automatically.
+
+#### Request
+
+```bash
+curl -X GET "https://api.agent-corex.com/v2/retrieve_tools" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-Agent-Source: mcp" \
+  -G \
+  --data-urlencode "query=deploy to production" \
+  --data-urlencode "top_k=5"
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | Yes | Natural language query (e.g., "deploy to production") |
+| `top_k` | integer | No | Number of tools to return (default: 5, max: 50) |
+| `filter.server` | string | No | Filter by MCP server name |
+
+**Headers:**
+
+| Header | Value | Required | Description |
+|--------|-------|----------|-------------|
+| `Authorization` | `Bearer {api_key}` | Yes | Your API key (for logging and auth) |
+| `X-Agent-Source` | `mcp` \| `api` \| `dashboard` | No | Request origin (default: `api`) |
+
+#### Response
+
+**Status: 200 OK**
+
+```json
+{
+  "tools": [
+    {
+      "name": "deploy-aws",
+      "server": "aws-mcp",
+      "score": 0.98,
+      "semantic_score": 0.96,
+      "capability_score": 0.99,
+      "success_rate": 0.95,
+      "description": "Deploy to AWS environment",
+      "input_schema": {
+        "type": "object",
+        "properties": {...}
+      }
+    },
+    {
+      "name": "send-slack",
+      "server": "slack-mcp",
+      "score": 0.92,
+      "semantic_score": 0.90,
+      "description": "Send message to Slack"
+    }
+  ],
+  "query_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tools` | array | Retrieved tools with metadata |
+| `tools[].name` | string | Tool name (unique within server) |
+| `tools[].server` | string | MCP server name |
+| `tools[].score` | number | Overall relevance score (0-1) |
+| `tools[].semantic_score` | number | Semantic relevance score |
+| `tools[].capability_score` | number | Capability match score |
+| `tools[].success_rate` | number | Historical success rate |
+| `tools[].description` | string | Tool description |
+| `tools[].input_schema` | object | JSON Schema for inputs |
+| `query_id` | string | Unique query ID (UUID) |
+
+#### Side Effects
+
+When authenticated, automatically logs to `query_events` table:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "user-uuid",
+  "query": "deploy to production",
+  "source": "mcp",
+  "selected_tools": ["deploy-aws", "send-slack"],
+  "scores": {
+    "deploy-aws": {
+      "score": 0.98,
+      "semantic_score": 0.96,
+      "capability_score": 0.99,
+      "success_rate": 0.95
+    },
+    "send-slack": {
+      "score": 0.92,
+      "semantic_score": 0.90,
+      "capability_score": 0.94,
+      "success_rate": 0.98
+    }
+  },
+  "retrieved_tools": [...],
+  "created_at": "2026-04-08T10:30:00Z"
+}
+```
+
+#### Examples
+
+**CLI Request (with MCP header):**
+
+```bash
+curl -X GET "https://api.agent-corex.com/v2/retrieve_tools" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "X-Agent-Source: mcp" \
+  -G --data-urlencode "query=get all github issues" \
+       --data-urlencode "top_k=5"
+```
+
+Result logged with `source: "mcp"`.
+
+**API Request (no special header):**
+
+```bash
+curl -X GET "https://api.agent-corex.com/v2/retrieve_tools" \
+  -H "Authorization: Bearer $API_KEY" \
+  -G --data-urlencode "query=deploy to production"
+```
+
+Result logged with `source: "api"` (default).
+
+**Dashboard Request:**
+
+```bash
+curl -X GET "https://api.agent-corex.com/v2/retrieve_tools" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "X-Agent-Source: dashboard" \
+  -G --data-urlencode "query=find aws tools"
+```
+
+Result logged with `source: "dashboard"`.
+
+---
+
+## QueryEventService (Backend)
+
+The `QueryEventService` is the modular service responsible for logging queries.
+
+### Import
+
+```python
+from packages.query_events import QueryEventService
+```
+
+### Methods
+
+#### `__init__(supabase_url: Optional[str] = None, service_key: Optional[str] = None)`
+
+Initialize the service with Supabase credentials.
+
+**Parameters:**
+
+```python
+service = QueryEventService(
+    supabase_url="https://your-project.supabase.co",
+    service_key="your-service-role-key"
+)
+```
+
+If not provided, credentials are read from environment:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY`
+
+**Returns:** `QueryEventService` instance
+
+#### `async log_retrieval(user_id, query, source, tools, scores, timeout)`
+
+Log a tool retrieval to the `query_events` table.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user_id` | str | Yes | User ID (UUID). Required for logging. |
+| `query` | str | Yes | Natural language query |
+| `source` | str | No | Request source: `"api"`, `"mcp"`, `"dashboard"` (default: `"api"`) |
+| `tools` | list[dict] | No | Full list of retrieved tools with metadata |
+| `scores` | dict | No | Tool name → scores mapping |
+| `timeout` | float | No | HTTP timeout in seconds (default: `2.0`) |
+
+**Returns:** `str | None` — Inserted event ID (UUID) or `None` if failed
+
+**Side Effects:**
+- Writes to Supabase `query_events` table
+- Logs warnings if HTTP/network fails (non-blocking)
+- Returns gracefully if Supabase unavailable
+
+**Examples:**
+
+```python
+service = QueryEventService()
+
+event_id = await service.log_retrieval(
+    user_id="user-123",
+    query="deploy to production",
+    source="mcp",
+    tools=[
+        {
+            "name": "deploy-aws",
+            "server": "aws-mcp",
+            "score": 0.98,
+            "semantic_score": 0.96,
+            "capability_score": 0.99,
+            "success_rate": 0.95
+        }
+    ],
+    scores={
+        "deploy-aws": {
+            "score": 0.98,
+            "semantic_score": 0.96,
+            "capability_score": 0.99,
+            "success_rate": 0.95
+        }
+    }
+)
+
+print(f"Logged event: {event_id}")
+```
+
+#### `is_ready() -> bool`
+
+Check if service is properly configured (has Supabase credentials).
+
+**Returns:** `True` if ready, `False` otherwise
+
+**Example:**
+
+```python
+service = QueryEventService()
+if service.is_ready():
+    await service.log_retrieval(...)
+else:
+    logger.warning("Query event service not configured")
+```
+
+---
+
+## Query Events Table Schema
+
+```sql
+CREATE TABLE query_events (
+  -- Primary key
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- User and query metadata
+  user_id         UUID NOT NULL,
+  query           TEXT NOT NULL,
+  source          TEXT DEFAULT 'api',
+
+  -- Tool data
+  selected_tools  JSONB DEFAULT '[]',   -- Tool names used
+  scores          JSONB DEFAULT '{}',   -- Score details
+  retrieved_tools JSONB DEFAULT '[]',   -- Full tool metadata
+
+  -- Timestamps
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Indexes for fast queries
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  INDEX idx_user_created ON query_events(user_id, created_at DESC),
+  INDEX idx_query_created ON query_events(query, created_at DESC)
+);
+```
+
+---
+
+## Querying Query Events
+
+### Via Supabase REST API
+
+**Get user's recent queries:**
+
+```bash
+curl "https://your-project.supabase.co/rest/v1/query_events" \
+  -H "apikey: $SERVICE_KEY" \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -G \
+  --data-urlencode "user_id=eq.user-uuid" \
+  --data-urlencode "order=created_at.desc" \
+  --data-urlencode "limit=10"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_id": "user-uuid",
+    "query": "deploy to production",
+    "source": "mcp",
+    "selected_tools": ["deploy-aws", "send-slack"],
+    "scores": {...},
+    "retrieved_tools": [...],
+    "created_at": "2026-04-08T10:30:00Z"
+  },
+  ...
+]
+```
+
+**Filter by date range:**
+
+```bash
+curl "https://your-project.supabase.co/rest/v1/query_events" \
+  -H "apikey: $SERVICE_KEY" \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -G \
+  --data-urlencode "user_id=eq.user-uuid" \
+  --data-urlencode "created_at=gte.2026-04-01" \
+  --data-urlencode "created_at=lt.2026-04-08" \
+  --data-urlencode "order=created_at.desc"
+```
+
+**Filter by source:**
+
+```bash
+curl "https://your-project.supabase.co/rest/v1/query_events" \
+  -H "apikey: $SERVICE_KEY" \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -G \
+  --data-urlencode "source=eq.mcp" \
+  --data-urlencode "limit=10"
+```
+
+### Via Python
+
+```python
+import httpx
+
+async with httpx.AsyncClient() as client:
+    resp = await client.get(
+        "https://your-project.supabase.co/rest/v1/query_events",
+        headers={
+            "apikey": service_key,
+            "Authorization": f"Bearer {service_key}",
+        },
+        params={
+            "user_id": f"eq.{user_id}",
+            "order": "created_at.desc",
+            "limit": 10,
+        },
+    )
+    events = resp.json()
+```
+
+---
+
+## Errors
+
+### 401 Unauthorized
+
+**Cause:** Missing or invalid API key
+
+**Response:**
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid API key"
+}
+```
+
+**Solution:** Provide valid `Authorization: Bearer {api_key}` header
+
+### 400 Bad Request
+
+**Cause:** Missing required parameters
+
+**Response:**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Missing required parameter: query"
+}
+```
+
+**Solution:** Check all required parameters are provided
+
+### 500 Internal Server Error
+
+**Cause:** Backend error (e.g., Supabase unavailable)
+
+**Response:**
+
+```json
+{
+  "error": "Internal Server Error",
+  "message": "Failed to retrieve tools"
+}
+```
+
+**Note:** Query events failing does NOT block tool retrieval — the endpoint still returns tools but logs a warning.
+
+---
+
+## Rate Limiting
+
+| Tier | Queries/min | Queries/day |
+|------|-------------|------------|
+| Free | 60 | 10,000 |
+| Pro | 600 | 100,000 |
+| Enterprise | Unlimited | Unlimited |
+
+Query event logging does NOT count against rate limits (fire-and-forget background logging).
+
+---
+
+## Authentication
+
+All endpoints require authentication:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+Get your API key in the dashboard under **Settings** → **API Keys**.
+
+---
+
+## Best Practices
+
+### 1. Always Include Source Header
+
+Help analytics by identifying request origin:
+
+```python
+headers = {
+    "X-Agent-Source": "mcp",  # or "api" or "dashboard"
+    "Authorization": f"Bearer {api_key}"
+}
+```
+
+### 2. Handle Gracefully
+
+Query event logging is non-blocking and fire-and-forget:
+
+```python
+# This ALWAYS succeeds (tools returned)
+# Even if query_events fails
+response = await client.get("/v2/retrieve_tools", ...)
+assert response.status_code == 200
+```
+
+### 3. Monitor Query Volume
+
+Track queries per minute and patterns:
+
+```sql
+SELECT 
+  source,
+  COUNT(*) as count,
+  DATE(created_at) as date
+FROM query_events
+GROUP BY source, DATE(created_at)
+ORDER BY date DESC;
+```
+
+### 4. Archive Old Events
+
+Keep dashboard responsive by archiving:
+
+```sql
+DELETE FROM query_events 
+WHERE created_at < NOW() - INTERVAL '90 days';
+```
+
+---
+
+## Related Docs
+
+- [Query Events Concept Guide](/core-concepts/query-events)
+- [Tool Retrieval Guide](/tool-retrieval/how-it-works)
+- [Dashboard Guide](/guides/using-the-dashboard)
+- [Retrieve Tools Endpoint](/api-reference/retrieve-tools)
+
+---
+
+**Key Takeaway:** Query events provide complete visibility into tool retrieval patterns. They're logged automatically and never block requests. Use them for analytics, debugging, and monitoring. 📊

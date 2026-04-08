@@ -1,0 +1,607 @@
+---
+title: 'Microservice Architecture & Modular Design'
+description: 'Agent-CoreX architecture principles, modular service design, and roadmap for microservice extraction.'
+---
+
+## Microservice Architecture & Modular Design
+
+Agent-CoreX is built with **modular services** that can be independently extracted into separate microservices as your system scales. This guide explains the architecture philosophy and provides a roadmap for microservice migration.
+
+---
+
+## Philosophy: Modularity First
+
+The core principle is **modularity with single responsibility**:
+
+```
+┌─────────────────────────────────────────┐
+│    Monolith (Current)                   │
+├─────────────────────────────────────────┤
+│  ┌──────────────────┐                   │
+│  │ Tool Retrieval   │ Tightly coupled   │
+│  └──────────────────┘                   │
+│  ┌──────────────────┐                   │
+│  │ Query Events     │ within FastAPI    │
+│  └──────────────────┘                   │
+│  ┌──────────────────┐                   │
+│  │ Tool Execution   │                   │
+│  └──────────────────┘                   │
+└─────────────────────────────────────────┘
+
+                    ↓ Extract modular services
+
+┌─────────────────────────────────────────┐
+│  Microservices (Future)                 │
+├─────────────────────────────────────────┤
+│ ┌──────────────────┐  ┌──────────────┐  │
+│ │ Tool Retrieval   │  │Query Events  │  │
+│ │   Service        │  │   Service    │  │
+│ └──────────────────┘  └──────────────┘  │
+│         ↕                      ↕          │
+│ API Gateway / Message Queue               │
+└─────────────────────────────────────────┘
+```
+
+### Benefits of Modularity
+
+| Benefit | How It Helps |
+|---------|-------------|
+| **Independent Scaling** | Scale Query Events service separately from Tool Retrieval |
+| **Technology Flexibility** | Use different languages/frameworks for each service |
+| **Failure Isolation** | Query Events failure doesn't crash Tool Retrieval |
+| **Team Ownership** | Teams can own specific services independently |
+| **Gradual Migration** | Extract one service at a time without disruption |
+
+---
+
+## Current Architecture
+
+### Monolith Structure (agent-corex-enterprise)
+
+```
+apps/api/
+├── routes/
+│   └── v2_retrieval.py  ← Tool Retrieval endpoint
+│
+packages/
+├── query_events/        ← Self-contained Query Events service
+│   ├── service.py       ├─ Core logic
+│   ├── source.py        ├─ Request source extraction
+│   └── README.md        └─ Documentation
+│
+└── (other packages)
+```
+
+### Service Modules (Today)
+
+Each service is designed with **self-containment** in mind:
+
+#### 1. Query Events Service
+
+**Location:** `packages/query_events/`
+
+**Responsibility:** Log tool retrieval queries to `query_events` table
+
+**Interface:**
+```python
+service = QueryEventService()
+event_id = await service.log_retrieval(
+    user_id, query, source, tools, scores
+)
+```
+
+**Design Principle:** Zero dependencies on other packages (except external libraries)
+
+**Future: Extractable to** separate gRPC/HTTP service
+
+---
+
+## Extraction Roadmap
+
+### Phase 1: Modular Packages (Current ✓)
+
+Services are already self-contained modules:
+
+- ✓ **Query Events** — Ready to extract immediately
+  - `packages/query_events/service.py`
+  - Direct Supabase access via REST API
+  - Fire-and-forget logging (non-blocking)
+
+### Phase 2: HTTP Gateway (Next ~3-6 months)
+
+When ready to extract a service:
+
+**Before (monolith):**
+```python
+# In v2_retrieval.py
+service = QueryEventService()
+await service.log_retrieval(...)  # Direct call
+```
+
+**After (microservice):**
+```python
+# In v2_retrieval.py (updated)
+async with httpx.AsyncClient() as client:
+    await client.post(
+        "http://query-events-service/log",
+        json={...}
+    )
+```
+
+**Service (separate container):**
+```python
+# query-events-service/main.py
+@app.post("/log")
+async def log_query_event(payload: QueryEventPayload):
+    service = QueryEventService()
+    return await service.log_retrieval(**payload)
+```
+
+### Phase 3: Service Mesh (Future ~12+ months)
+
+With multiple microservices, add service discovery:
+
+```
+┌─────────────────────────────────────┐
+│  Service Mesh (Istio/Linkerd)       │
+├─────────────────────────────────────┤
+│ ┌─────────────┐   ┌────────────┐   │
+│ │ API Gateway │   │ Monitoring │   │
+│ └──────┬──────┘   └────────────┘   │
+│        │                             │
+│ ┌──────┴────────┬──────────┬──────┐ │
+│ │               │          │      │ │
+│ ▼               ▼          ▼      ▼ │
+│[Retrieval]  [Query Events][Chat] ...│
+│ Svc         Svc           Svc       │
+└─────────────────────────────────────┘
+     ↓
+  Service Registry (Consul/etcd)
+  Load Balancing
+  Circuit Breakers
+```
+
+---
+
+## How to Extract a Service: Query Events Example
+
+### Step 1: Prepare the Monolith
+
+✓ **Already done** — Service is modular and self-contained
+
+- Service has clean interface: `QueryEventService`
+- No tight coupling to monolith
+- Testable in isolation (see `tests/test_query_events_e2e.py`)
+- Documentation complete (see `packages/query_events/README.md`)
+
+### Step 2: Create Microservice Repo
+
+```bash
+git init query-events-service
+mkdir -p src/{routes,services}
+
+# Copy the service module
+cp -r packages/query_events src/services/
+```
+
+**Microservice structure:**
+```
+query-events-service/
+├── src/
+│   ├── services/query_events/
+│   │   ├── service.py  ← Copy from monolith
+│   │   └── __init__.py
+│   └── routes/
+│       └── events.py   ← New: HTTP endpoints
+├── requirements.txt
+├── Dockerfile
+└── main.py
+```
+
+### Step 3: Add HTTP Layer
+
+**New file:** `src/routes/events.py`
+
+```python
+from fastapi import APIRouter
+from pydantic import BaseModel
+from services.query_events import QueryEventService
+
+router = APIRouter(prefix="/api/v1", tags=["query-events"])
+
+class LogQueryRequest(BaseModel):
+    user_id: str
+    query: str
+    source: str = "api"
+    tools: list = []
+    scores: dict = {}
+
+@router.post("/query-events/log")
+async def log_query_event(request: LogQueryRequest):
+    """Log a tool retrieval query."""
+    service = QueryEventService()
+    
+    if not service.is_ready():
+        return {"error": "Service not configured"}
+    
+    event_id = await service.log_retrieval(
+        user_id=request.user_id,
+        query=request.query,
+        source=request.source,
+        tools=request.tools,
+        scores=request.scores,
+    )
+    
+    return {"event_id": event_id}
+```
+
+### Step 4: Update Monolith to Use Service
+
+**Update:** `apps/api/routes/v2_retrieval.py`
+
+```python
+# Before: Direct import and call
+# from packages.query_events import QueryEventService
+# service = QueryEventService()
+# await service.log_retrieval(...)
+
+# After: HTTP call to microservice
+import httpx
+
+if user_id:
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.post(
+                os.getenv("QUERY_EVENTS_SERVICE_URL", "http://localhost:8001") 
+                + "/api/v1/query-events/log",
+                json={
+                    "user_id": user_id,
+                    "query": query,
+                    "source": source,
+                    "tools": tools,
+                    "scores": scores,
+                },
+                timeout=2.0,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log query event: {e}")
+            # Continue anyway — non-blocking
+```
+
+### Step 5: Containerize & Deploy
+
+**Dockerfile:**
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY src/ src/
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+```
+
+**Environment variables:**
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-key
+```
+
+**Deployment:**
+```bash
+# Docker Compose (development)
+docker-compose up -d query-events-service
+
+# Kubernetes (production)
+kubectl apply -f query-events-service-deployment.yaml
+```
+
+### Step 6: Testing
+
+**Unit tests:** Still pass (same code)
+```bash
+pytest packages/query_events/
+```
+
+**Integration tests:** Updated to use HTTP
+```python
+# Before
+service = QueryEventService()
+event_id = await service.log_retrieval(...)
+
+# After
+async with httpx.AsyncClient() as client:
+    resp = await client.post(
+        "http://query-events-service/api/v1/query-events/log",
+        json={...}
+    )
+    event_id = resp.json()["event_id"]
+```
+
+### Step 7: Monitoring & Observability
+
+Add observability before extracting:
+
+**Metrics:**
+```python
+from prometheus_client import Counter
+
+queries_logged = Counter(
+    "query_events_logged_total",
+    "Total queries logged",
+    ["source"]
+)
+```
+
+**Structured logging:**
+```python
+logger.info(
+    "Query event logged",
+    extra={
+        "trace_id": trace_id,
+        "user_id": user_id,
+        "query": query,
+        "event_id": event_id,
+        "duration_ms": duration,
+    }
+)
+```
+
+**Health checks:**
+```python
+@app.get("/health")
+async def health():
+    service = QueryEventService()
+    return {
+        "status": "healthy",
+        "query_events_service_ready": service.is_ready()
+    }
+```
+
+---
+
+## Design Principles for New Services
+
+When building new modular services, follow these patterns:
+
+### 1. **Self-Contained**
+
+```python
+# ✓ Good — Service manages its own Supabase connection
+class QueryEventService:
+    def __init__(self):
+        self.url = os.getenv("SUPABASE_URL")
+        self.key = os.getenv("SUPABASE_SERVICE_KEY")
+
+# ✗ Bad — Service depends on global state
+service = QueryEventService(config=app.config)
+```
+
+### 2. **Clean Interface**
+
+```python
+# ✓ Good — Single responsibility, clear parameters
+async def log_retrieval(
+    user_id: str,
+    query: str,
+    source: str,
+    tools: List[Dict],
+    scores: Dict[str, Dict],
+) -> Optional[str]:
+    """Log a query event."""
+
+# ✗ Bad — Passing entire request object
+async def handle_query(request: FastAPIRequest) -> Response:
+    """Does 10 things."""
+```
+
+### 3. **Graceful Degradation**
+
+```python
+# ✓ Good — Service failure doesn't block response
+if service.is_ready():
+    await service.log_retrieval(...)
+else:
+    logger.warning("Service not available")
+    # Continue without logging
+
+# ✗ Bad — Service failure crashes everything
+try:
+    await service.log_retrieval(...)
+except Exception:
+    return {"error": "Service failed"}  # Blocks user
+```
+
+### 4. **Observable**
+
+```python
+# ✓ Good — Detailed logging for debugging
+logger.info(
+    f"Logged query event: {event_id}",
+    extra={"query": query, "source": source}
+)
+
+# ✗ Bad — Silent failures
+try:
+    await client.post(...)
+except:
+    pass  # Silent
+```
+
+### 5. **Tested in Isolation**
+
+```python
+# ✓ Good — Unit tests don't depend on FastAPI
+@pytest.mark.asyncio
+async def test_query_event_service():
+    service = QueryEventService(
+        supabase_url="...",
+        service_key="..."
+    )
+    result = await service.log_retrieval(...)
+    assert result is not None
+
+# ✗ Bad — Tests depend on app running
+@app.get("/test")
+def test():
+    # Test code in route?
+```
+
+---
+
+## Migration Checklist
+
+Use this checklist when extracting a service:
+
+### Pre-Extraction (1 week before)
+
+- [ ] Service module is fully self-contained
+- [ ] Interface is stable and documented
+- [ ] Unit tests exist and pass
+- [ ] Integration tests exist and pass
+- [ ] Team agrees on extraction timeline
+- [ ] Monitoring/alerting is planned
+- [ ] Graceful degradation is implemented
+
+### Extraction (Day 1)
+
+- [ ] New repo created
+- [ ] Service code copied
+- [ ] HTTP layer added
+- [ ] Environment variables configured
+- [ ] Dockerfile created and tested
+- [ ] Deployment manifests created
+- [ ] Service deployed to staging
+
+### Integration (Day 2)
+
+- [ ] Monolith updated to use HTTP client
+- [ ] Fallback handling in place
+- [ ] Circuit breaker/retry logic added
+- [ ] Load testing completed
+- [ ] Monitoring dashboards created
+
+### Validation (Day 3-7)
+
+- [ ] Production deployment
+- [ ] Canary/gradual rollout
+- [ ] Monitoring for errors
+- [ ] Performance validation
+- [ ] Rollback plan tested
+
+### Post-Extraction (Ongoing)
+
+- [ ] Maintain separate versioning
+- [ ] Independent scaling as needed
+- [ ] Team ownership assigned
+- [ ] Documentation updated
+- [ ] SLOs/SLIs defined
+- [ ] On-call rotation established
+
+---
+
+## Costs & Tradeoffs
+
+### Benefits of Extraction
+
+| Benefit | When It Matters |
+|---------|-----------------|
+| Independent scaling | High-volume service |
+| Technology choice | Need different language/framework |
+| Team autonomy | Large team owning service |
+| Deployment independence | Frequent updates needed |
+
+### Costs of Extraction
+
+| Cost | Mitigation |
+|------|-----------|
+| Operational complexity | Use managed container platforms |
+| Network latency | HTTP calls add ~10-50ms |
+| Debugging difficulty | Structured logging + distributed tracing |
+| Deployment overhead | Infrastructure as code (Terraform/Helm) |
+
+### Rule of Thumb
+
+Extract a service when:
+- ✓ Service has >10k requests/day (scaling needs)
+- ✓ Different team owns service
+- ✓ Service has different SLA requirements
+- ✓ Service needs different technology
+
+Don't extract when:
+- ✗ Service <1k requests/day
+- ✗ Same team owns everything
+- ✗ Simple, stable service
+- ✗ No clear scaling bottleneck
+
+---
+
+## Current Status: Query Events
+
+| Aspect | Status | Notes |
+|--------|--------|-------|
+| Modular service | ✓ Complete | `packages/query_events/` |
+| Clean interface | ✓ Complete | `QueryEventService` class |
+| Self-contained | ✓ Complete | No external package deps |
+| Tested | ✓ Complete | E2E test suite |
+| Documented | ✓ Complete | README.md + API reference |
+| Extractable | ✓ Ready | Can extract immediately |
+| Extracted | ✗ Not yet | Extract in Phase 2 |
+
+---
+
+## Next Steps
+
+### If Scaling Query Events
+
+1. Review [Extraction Roadmap](#extraction-roadmap)
+2. Check [Migration Checklist](#migration-checklist)
+3. Create separate repo: `agent-corex-query-events`
+4. Follow [Step-by-step Guide](#how-to-extract-a-service-query-events-example)
+5. Add monitoring per [Observability](#step-7-monitoring--observability)
+
+### If Building New Services
+
+1. Review [Design Principles](#design-principles-for-new-services)
+2. Build with modularity from start
+3. Make extraction plan visible in docs
+4. Plan monitoring before deployment
+
+---
+
+## Related Docs
+
+<CardGroup cols={2}>
+  <Card
+    title="Query Events Service"
+    href="/core-concepts/query-events"
+  >
+    Detailed guide to query event logging.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/query-events"
+  >
+    Query Events API documentation.
+  </Card>
+
+  <Card
+    title="Deployment Guide"
+    href="/guides/deployment"
+  >
+    Production deployment procedures.
+  </Card>
+
+  <Card
+    title="Monitoring"
+    href="/guides/monitoring"
+  >
+    Observability and alerting setup.
+  </Card>
+</CardGroup>
+
+---
+
+**Key Takeaway:** Agent-CoreX is built with modularity first. Services like Query Events can be extracted to separate microservices whenever scaling demands it, without requiring major refactoring or architectural changes. 🏗️

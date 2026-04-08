@@ -1,0 +1,394 @@
+---
+title: 'Query Events & Observability'
+description: 'Understand how Agent-CoreX tracks and logs tool retrieval queries for dashboard visibility and observability.'
+---
+
+## Query Events & Observability
+
+Agent-CoreX provides comprehensive observability through the **Query Events system**, which logs all tool retrieval queries and makes them visible in the dashboard. This enables monitoring, analytics, and debugging of tool selection patterns.
+
+---
+
+## What Are Query Events?
+
+A **Query Event** is a record of a tool retrieval request. It captures:
+
+- **The Query** — What the user asked for (e.g., "deploy to production")
+- **Retrieved Tools** — All candidate tools returned by semantic search
+- **Selected Tools** — Tools actually used by the agent
+- **Scores** — Relevance scores and ranking metrics
+- **Request Source** — Origin of the request (CLI/MCP, API, Dashboard)
+- **User ID** — Which user made the request (for dashboard filtering)
+- **Timestamp** — When the query was executed
+
+---
+
+## Why Query Events Matter
+
+### 1. **Observability**
+See exactly what queries your agents are making and which tools they're selecting.
+
+### 2. **Debugging**
+When a tool selection seems wrong, check the query event to understand the ranking and available candidates.
+
+### 3. **Analytics**
+Track which tools are most frequently selected, trending queries, and usage patterns.
+
+### 4. **Performance Monitoring**
+Identify slow queries or tools that are underperforming.
+
+### 5. **Audit Trail**
+Maintain a record of agent activity for compliance and security.
+
+---
+
+## Data Flow
+
+```
+┌─────────────────┐
+│  User / CLI     │
+│   (asks query)  │
+└────────┬────────┘
+         │
+         │ POST /v2/retrieve_tools
+         │ Headers: X-Agent-Source: mcp
+         │
+         ▼
+┌─────────────────────────────────┐
+│  Backend (/v2/retrieve_tools)   │
+│  1. Retrieve tools              │
+│  2. Rank & score                │
+│  3. Log to query_events table   │
+│  4. Return to user              │
+└────────┬────────────────────────┘
+         │
+         │ Insert into Supabase
+         │
+         ▼
+┌─────────────────────────────┐
+│  query_events Table         │
+│  (Supabase)                 │
+│  ├─ id (UUID)               │
+│  ├─ user_id                 │
+│  ├─ query (text)            │
+│  ├─ source (api/mcp/dash)   │
+│  ├─ selected_tools []       │
+│  ├─ scores {}               │
+│  ├─ retrieved_tools []      │
+│  └─ created_at              │
+└────────┬────────────────────┘
+         │
+         │ Dashboard reads
+         │
+         ▼
+┌────────────────────────────┐
+│  Dashboard                 │
+│  (agent-corex-next)        │
+│  - Query history           │
+│  - Tool selection trends   │
+│  - Performance metrics     │
+└────────────────────────────┘
+```
+
+---
+
+## Request Source Tracking
+
+Every query event includes a **source** field that identifies where the request came from:
+
+| Source | Origin | Header |
+|--------|--------|--------|
+| `mcp` | CLI / MCP Gateway | `X-Agent-Source: mcp` |
+| `api` | Direct API call (default) | No header / other values |
+| `dashboard` | Dashboard UI | `X-Agent-Source: dashboard` |
+
+This allows you to distinguish:
+- **CLI queries** (from agents using the MCP gateway)
+- **API queries** (from direct HTTP clients)
+- **Dashboard queries** (from the dashboard UI itself)
+
+### Example: CLI Request
+
+The CLI automatically adds the `X-Agent-Source: mcp` header:
+
+```bash
+curl -X GET "https://api.agent-corex.com/v2/retrieve_tools?query=deploy" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-Agent-Source: mcp"
+```
+
+The backend logs this as a "mcp" source query event.
+
+---
+
+## Query Event Schema
+
+### Table Structure
+
+```sql
+CREATE TABLE query_events (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL,
+  query           TEXT NOT NULL,
+  source          TEXT DEFAULT 'api',
+  selected_tools  JSONB DEFAULT '[]',
+  scores          JSONB DEFAULT '{}',
+  retrieved_tools JSONB DEFAULT '[]',
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Field Details
+
+**selected_tools** — Array of tool names that were actually used:
+```json
+["deploy-aws", "send-slack", "create-github-issue"]
+```
+
+**scores** — Nested map of tool scores (NOT flat floats):
+```json
+{
+  "deploy-aws": {
+    "score": 0.98,
+    "semantic_score": 0.96,
+    "capability_score": 0.99,
+    "success_rate": 0.95
+  },
+  "send-slack": {
+    "score": 0.92,
+    "semantic_score": 0.90,
+    "capability_score": 0.94,
+    "success_rate": 0.98
+  }
+}
+```
+
+**retrieved_tools** — Full tool metadata from backend:
+```json
+[
+  {
+    "name": "deploy-aws",
+    "server": "aws-mcp",
+    "score": 0.98,
+    "description": "Deploy to AWS",
+    "semantic_score": 0.96,
+    "capability_score": 0.99,
+    "success_rate": 0.95
+  }
+]
+```
+
+---
+
+## Accessing Query Events
+
+### Via Dashboard
+
+View query events in the Agent-CoreX Dashboard under **Queries** → **Query History**:
+- Filter by date range
+- Search by query text
+- View ranking and tool selection
+- Analyze trends over time
+
+### Via Supabase REST API
+
+Query events directly from Supabase:
+
+```bash
+curl "https://your-project.supabase.co/rest/v1/query_events" \
+  -H "apikey: YOUR_SERVICE_KEY" \
+  -H "Authorization: Bearer YOUR_SERVICE_KEY" \
+  -G \
+  --data-urlencode "user_id=eq.USER_ID" \
+  --data-urlencode "order=created_at.desc" \
+  --data-urlencode "limit=10"
+```
+
+### Via SDK
+
+```python
+from packages.query_events import QueryEventService
+
+service = QueryEventService()
+events = await service.log_retrieval(
+    user_id="user-123",
+    query="deploy to production",
+    source="mcp",
+    tools=[...],
+    scores={...}
+)
+```
+
+---
+
+## Integration Points
+
+### Backend (agent-corex-enterprise)
+
+The backend automatically logs to query_events when:
+- `/v2/retrieve_tools` endpoint is called
+- User is authenticated (has user_id)
+- Supabase credentials are configured
+
+**Location:** `apps/api/routes/v2_retrieval.py`
+
+```python
+from packages.query_events import QueryEventService
+
+# In endpoint handler
+query_event_service = QueryEventService()
+await query_event_service.log_retrieval(
+    user_id=user_id,
+    query=query,
+    source=source,  # from X-Agent-Source header
+    tools=tools_list,
+    scores=scores_map
+)
+```
+
+### CLI (agent-corex)
+
+The CLI automatically adds the source header:
+
+**Location:** `agent_core/gateway/tool_router.py`
+
+```python
+headers = {
+    "X-Agent-Source": "mcp",  # Identifies as CLI/MCP request
+}
+```
+
+### Dashboard (agent-corex-next)
+
+The dashboard reads from query_events and displays:
+- Query history
+- Tool selection visualization
+- Ranking metrics
+- Trend analysis
+
+**Location:** `app/(dashboard)/dashboard/queries/page.tsx`
+
+---
+
+## Configuration
+
+### Environment Variables
+
+Set these on the backend server:
+
+```bash
+# Supabase connection (required for query event logging)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+```
+
+### Graceful Degradation
+
+If Supabase is unavailable:
+- ✅ Tool retrieval still works
+- ✅ Response returned to user
+- ⚠️ Warning logged to console
+- ❌ Query event not recorded
+
+This is **intentional** — observability should never block production requests.
+
+---
+
+## Best Practices
+
+### 1. **Anonymous Queries Are Not Logged**
+
+Query events require `user_id` for dashboard filtering. Anonymous (unauthenticated) queries are:
+- ✅ Still processed and return tools
+- ❌ Not logged to query_events
+- ✓ Logged to general query_logs instead
+
+### 2. **Source Headers for External Clients**
+
+If you're building a custom client, include the source header:
+
+```python
+headers = {
+    "X-Agent-Source": "dashboard",  # or "api"
+    "Authorization": f"Bearer {api_key}"
+}
+```
+
+### 3. **Monitor Query Volume**
+
+High-volume queries can impact backend performance. Monitor:
+- Queries per minute
+- Tools per query
+- Query types and patterns
+
+### 4. **Archive Old Events**
+
+Periodically archive old query events to keep dashboards responsive:
+
+```sql
+-- Archive events older than 90 days
+DELETE FROM query_events 
+WHERE created_at < NOW() - INTERVAL '90 days';
+```
+
+---
+
+## Troubleshooting
+
+### "No query events appearing in dashboard"
+
+**Checklist:**
+- [ ] User is authenticated (has API key)
+- [ ] `X-Agent-Source` header is correct (optional, defaults to "api")
+- [ ] `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` configured on backend
+- [ ] Supabase is reachable (check network)
+- [ ] Check backend logs for warnings: `log_retrieval failed`
+
+### "Query events missing some fields"
+
+Query events are logged with available data. If a field is missing:
+- It wasn't provided in the request
+- It failed to extract from the tool data
+- It's optional (scores, retrieved_tools)
+
+### "Why is my anonymous query not logged?"
+
+Query events require user_id. Anonymous (unauthenticated) queries are logged to `query_logs` table instead for observability.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Tool Retrieval Guide"
+    href="/tool-retrieval/how-it-works"
+  >
+    Learn how tools are selected and ranked.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/retrieve-tools"
+  >
+    Full endpoint documentation.
+  </Card>
+
+  <Card
+    title="Dashboard Guide"
+    href="/guides/using-the-dashboard"
+  >
+    How to use the dashboard to monitor queries.
+  </Card>
+
+  <Card
+    title="Microservice Extraction"
+    href="/core-concepts/microservice-architecture"
+  >
+    Future: Extracting query events to separate service.
+  </Card>
+</CardGroup>
+
+---
+
+**Key Takeaway:** Query events provide complete visibility into what your agents are querying and which tools they're selecting. Use this data to optimize, debug, and monitor your agent systems. 🔍

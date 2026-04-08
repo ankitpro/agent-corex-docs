@@ -1,0 +1,448 @@
+---
+title: 'Viewing Query Events in the Dashboard'
+description: 'Step-by-step guide to monitor and analyze tool retrieval queries using the Agent-CoreX dashboard.'
+---
+
+## Viewing Query Events in the Dashboard
+
+The Agent-CoreX Dashboard provides a comprehensive view of all tool retrieval queries, enabling you to monitor which tools your agents are selecting and understand retrieval patterns.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- ✅ Active Agent-CoreX account
+- ✅ Dashboard access at `dashboard.agent-corex.com`
+- ✅ At least one authenticated query (see below)
+
+### Note: Anonymous Queries
+
+Query events require **user authentication**. If you're making requests without an API key:
+- ✅ Tools will still be retrieved and returned
+- ❌ Query event will not be logged
+- ✓ Check backend logs instead
+
+---
+
+## Accessing Query Events
+
+### Step 1: Navigate to Queries Page
+
+1. Log in to the dashboard
+2. Click **Queries** in the sidebar
+3. Select **Query History**
+
+You'll see a table of recent queries from your account.
+
+---
+
+## Understanding the Query List
+
+### Columns
+
+| Column | Meaning |
+|--------|---------|
+| **Query** | The natural language query (e.g., "deploy to production") |
+| **Tools** | Count of tools retrieved |
+| **Source** | Origin: `mcp` (CLI), `api` (direct API), `dashboard` (UI) |
+| **Time** | When the query was executed |
+| **Status** | Success or failure indicator |
+
+### Example
+
+```
+Query                        | Tools | Source | Time
+─────────────────────────────┼───────┼────────┼──────────────
+"deploy to production"       | 3     | mcp    | 2 min ago
+"get github issues"          | 5     | api    | 5 min ago
+"send slack notification"    | 2     | mcp    | 12 min ago
+```
+
+---
+
+## Viewing Query Details
+
+### Click on a Query
+
+1. Click any query row to open the **Query Details Panel**
+2. See full information:
+   - **Query text**
+   - **Retrieved tools** (all candidates)
+   - **Tool rankings** (scores)
+   - **Execution time**
+   - **Request source**
+
+### Details Breakdown
+
+#### Retrieved Tools Section
+
+Shows all tools returned by semantic search, ranked by relevance:
+
+```
+Tool Name               Score   Server      Status
+────────────────────────────────────────────────────
+deploy-aws             0.98    aws-mcp     ✓ Selected
+send-slack-message     0.92    slack-mcp   ✓ Selected
+create-github-issue    0.78    github-mcp  ○ Not used
+notify-pagerduty       0.65    pd-mcp      ○ Not used
+```
+
+**What do the icons mean?**
+- ✓ **Selected** — Tool was actually used
+- ○ **Not used** — Tool was available but not selected
+- ⚠️ **Failed** — Tool was selected but execution failed
+
+#### Scores Section
+
+Detailed breakdown of ranking metrics:
+
+```
+Tool: deploy-aws
+├─ Relevance (semantic): 0.96
+├─ Capability Match: 0.99
+├─ Success Rate: 0.95
+└─ Overall Score: 0.98
+```
+
+**Interpreting scores:**
+- **0.90-1.00** — Excellent match
+- **0.70-0.89** — Good match
+- **0.50-0.69** — Fair match
+- **Below 0.50** — Poor match
+
+---
+
+## Filtering & Searching
+
+### By Date Range
+
+1. Click **Date Range** filter
+2. Select preset (Last 24h, Last 7d, Last 30d) or custom dates
+3. Results update automatically
+
+### By Source
+
+Click **Source** filter to show only:
+- **All** — Every query
+- **MCP** — CLI/MCP gateway queries
+- **API** — Direct API calls
+- **Dashboard** — Dashboard UI queries
+
+**Use case:** Filter by "MCP" to see only queries from your agents.
+
+### By Tool
+
+1. Click **Tools** filter
+2. Select specific tools (e.g., "deploy-aws", "send-slack")
+3. Shows queries that retrieved those tools
+
+### By Query Text
+
+Search for specific queries:
+
+```
+Search: "deploy"
+Results:
+├─ "deploy to production"
+├─ "deploy and notify"
+└─ "deploy docker image"
+```
+
+---
+
+## Analyzing Trends
+
+### Query Volume Over Time
+
+View the **Query Analytics** tab:
+
+```
+Chart: Queries per Day
+      │
+  20  │  ╱╲
+      │ ╱  ╲     ╱╲
+  10  │╱    ╲   ╱  ╲
+      │      ╲ ╱    ╲
+   0  └───────────────────
+      Mon Tue Wed Thu Fri
+```
+
+**What it shows:**
+- Peak usage times
+- Daily query volume trends
+- Spikes in agent activity
+
+### Top Tools by Selection
+
+See which tools are most frequently used:
+
+```
+Tool Name          Selected Count  Percentage
+─────────────────────────────────────────────
+deploy-aws         87              23%
+send-slack         64              17%
+create-issue       52              14%
+get-logs           48              13%
+...
+```
+
+**Use case:** Identify which tools agents rely on most.
+
+### Top Queries
+
+See most frequent natural language queries:
+
+```
+Query                       Count
+───────────────────────────────────
+"deploy to production"      12
+"notify team"               8
+"create github issue"       7
+"get error logs"            6
+```
+
+**Use case:** Understand what agents ask for most.
+
+---
+
+## Debugging Tool Selection
+
+### Problem: "Wrong tools retrieved"
+
+1. Find the relevant query in history
+2. Open query details
+3. Check **Retrieved Tools** section
+4. Compare scores to understand ranking
+
+**Example:**
+```
+Query: "send a message to slack"
+
+Tools Retrieved:
+├─ send-slack-message (0.95) ✓ Selected ← Correct!
+├─ deploy-aws (0.42)
+└─ github-create-pr (0.38)
+```
+
+### Problem: "Tool not retrieved at all"
+
+1. Open the query details
+2. Check if tool appears in **Retrieved Tools**
+3. If tool not present:
+   - Tool may not exist in your connected servers
+   - Server may be offline
+   - Tool may not match the query semantically
+
+4. If tool is present but not selected:
+   - Check the score (too low?)
+   - Too many better tools were available
+   - Tool filtering may have excluded it
+
+---
+
+## Performance Insights
+
+### Slow Queries
+
+If you see a query took >1 second:
+
+1. Click the query
+2. View **Execution Time** details
+3. Check **Retrieved Tools** count
+4. High count = more semantic search time (expected)
+
+### Successful vs Failed Execution
+
+Some queries show:
+- **Retrieved** — Tools were found ✓
+- **Executed** — Tools were called ✓
+- **Failed** — Tool execution failed ⚠️
+
+Check tool execution logs for failure reasons.
+
+---
+
+## Export & Reporting
+
+### Export Query History
+
+1. Open **Queries** page
+2. Click **⬇️ Export**
+3. Choose format:
+   - CSV (for Excel/spreadsheets)
+   - JSON (for analysis/APIs)
+   - PDF (for reports)
+
+### Generate Report
+
+1. Click **📊 Report**
+2. Select metrics:
+   - Total queries
+   - Tool selection trends
+   - Source distribution
+   - Query performance
+3. Choose date range
+4. Download PDF
+
+**Example report sections:**
+- Executive Summary (query volume, top tools)
+- Trend Analysis (queries over time)
+- Tool Performance (selection frequency, success rates)
+- Recommendations (frequently used tools, failing queries)
+
+---
+
+## Common Use Cases
+
+### 1. Monitor Agent Activity
+
+**Goal:** See what your deployed agent is doing
+
+**Steps:**
+1. Filter by **Source: MCP** (agent queries)
+2. View recent query history
+3. Check tool selection patterns
+
+### 2. Debug Tool Selection Issues
+
+**Goal:** Understand why wrong tool was selected
+
+**Steps:**
+1. Find the problematic query
+2. Open query details
+3. Review all retrieved tools and scores
+4. Check if better tool existed but wasn't selected
+5. Report to team or adjust semantic search
+
+### 3. Analyze Tool Popularity
+
+**Goal:** Find which tools are most useful
+
+**Steps:**
+1. Go to **Query Analytics**
+2. View **Top Tools by Selection**
+3. Correlate with business goals
+4. Consider optimizing/expanding popular tools
+
+### 4. Performance Tuning
+
+**Goal:** Optimize for faster queries
+
+**Steps:**
+1. Monitor **Execution Time** trends
+2. Identify slow queries
+3. Check if high tool counts cause slowness
+4. Consider filtering or caching strategies
+
+### 5. Cost Analysis
+
+**Goal:** Track API usage costs
+
+**Steps:**
+1. Export query history (CSV)
+2. Sum queries by date
+3. Multiply by per-query cost
+4. Monitor spend over time
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Open selected query details |
+| `Esc` | Close details panel |
+| `↑↓` | Navigate query list |
+| `Ctrl+F` | Search queries |
+| `Ctrl+E` | Export current view |
+
+---
+
+## Settings & Preferences
+
+### Auto-Refresh
+
+Enable automatic refresh of query list:
+
+1. Click **⚙️ Settings**
+2. Toggle **Auto-refresh**
+3. Choose interval (5s, 10s, 30s)
+
+Useful when monitoring live agent activity.
+
+### Display Preferences
+
+1. Click **⚙️ Settings**
+2. **Show scores** — Toggle detailed score display
+3. **Show metadata** — Toggle tool metadata
+4. **Compact view** — Reduce row height
+5. **Dark mode** — Toggle theme
+
+---
+
+## Troubleshooting
+
+### "No query events appearing"
+
+**Checklist:**
+- [ ] Using authenticated API key (not anonymous)
+- [ ] Queries are recent (check date filter)
+- [ ] Source filter isn't too restrictive
+- [ ] Dashboard is connected to correct environment
+
+### "Scores look wrong"
+
+Scores reflect:
+- **Semantic similarity** to your query
+- **Capability match** (does tool do what you need?)
+- **Historical success rate** (has it worked before?)
+
+High score = tool should work well for your query.
+
+### "Tool isn't appearing in retrieved tools"
+
+Reasons:
+1. Tool may not exist in connected servers
+2. Server is offline/disconnected
+3. Tool name doesn't semantically match your query
+4. Tool filtered by your search criteria
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Query Events Concept"
+    href="/core-concepts/query-events"
+  >
+    Deep dive into how query events work.
+  </Card>
+
+  <Card
+    title="Tool Retrieval"
+    href="/tool-retrieval/how-it-works"
+  >
+    Understand ranking and scoring.
+  </Card>
+
+  <Card
+    title="API Reference"
+    href="/api-reference/query-events"
+  >
+    Programmatic access to query events.
+  </Card>
+
+  <Card
+    title="Getting Started"
+    href="/getting-started/your-first-query"
+  >
+    Make your first API call.
+  </Card>
+</CardGroup>
+
+---
+
+**Key Takeaway:** The dashboard's Query History provides complete visibility into which tools your agents are retrieving and selecting. Use it to monitor, debug, and optimize your agent systems. 🔍📊

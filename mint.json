@@ -76,7 +76,9 @@
       "pages": [
         "core-concepts/overview",
         "core-concepts/tool-lifecycle",
-        "core-concepts/dynamic-retrieval"
+        "core-concepts/dynamic-retrieval",
+        "core-concepts/query-events",
+        "core-concepts/microservice-architecture"
       ]
     },
     {
@@ -113,6 +115,7 @@
         "api-reference/endpoints-quick-reference",
         "api-reference/tool-discovery",
         "api-reference/tool-execution",
+        "api-reference/query-events",
         "api-reference/mcp-servers",
         "api-reference/custom-packs",
         "api-reference/webhooks",
@@ -131,7 +134,8 @@
         "guides/create-api-key",
         "guides/mcp-setup",
         "guides/reduce-token-usage",
-        "guides/authentication"
+        "guides/authentication",
+        "guides/query-events-dashboard"
       ]
     },
     {
