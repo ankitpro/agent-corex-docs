@@ -1,0 +1,822 @@
+---
+title: 'Custom Packs Management'
+description: 'Create and manage custom MCP server packs with fine-grained control'
+---
+
+# Custom Packs Management API
+
+Build custom tool collections by combining MCP servers into reusable packs.
+
+---
+
+## Overview
+
+Custom Packs let you:
+
+- **Combine servers** - Group multiple MCP servers together
+- **Share collections** - Use the same pack across projects
+- **Organize tools** - Logical grouping for team workflows
+- **Enforce limits** - Control max packs per plan
+- **Version control** - Track and update pack configurations
+
+---
+
+## What Are Packs?
+
+A **Pack** is a curated collection of MCP servers that work together:
+
+```json
+{
+  "id": "pack_dev_workflow",
+  "name": "Development Workflow",
+  "description": "Git, CI/CD, and deployment tools",
+  "servers": ["github-mcp", "gitlab-mcp", "jenkins-mcp"],
+  "created_at": 1705315800,
+  "updated_at": 1705315800
+}
+```
+
+---
+
+## Plan Limits
+
+| Plan | Max Packs | Max Servers/Pack | Custom Servers |
+|------|-----------|------------------|---|
+| Free | 1 | 5 | No |
+| Pro | 10 | 50 | Yes |
+| Enterprise | Unlimited | Unlimited | Yes |
+
+---
+
+## POST /custom-packs/mcp-servers
+
+**Create a custom MCP server definition**
+
+### Authentication
+Required
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Server name |
+| `display_name` | string | Yes | Display name |
+| `description` | string | Yes | Server description |
+| `url` | string | No | Server documentation URL |
+| `icon` | string | No | Icon name/URL |
+| `category` | string | No | Category (custom, development, etc.) |
+| `config` | object | No | Custom configuration |
+
+### Request Example
+
+```bash
+curl -X POST "https://api.agent-corex.com/custom-packs/mcp-servers" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-internal-api",
+    "display_name": "Internal API Tools",
+    "description": "Tools for our internal REST API",
+    "url": "https://api.internal.com",
+    "icon": "api",
+    "category": "custom",
+    "config": {
+      "base_url": "https://api.internal.com",
+      "auth_type": "bearer",
+      "auth_header": "X-API-Key"
+    }
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "id": "server_custom_123",
+  "name": "my-internal-api",
+  "display_name": "Internal API Tools",
+  "description": "Tools for our internal REST API",
+  "created_at": 1705315800,
+  "url": "https://api.internal.com",
+  "icon": "api",
+  "category": "custom"
+}
+```
+
+### Error Cases
+
+**Plan limit exceeded (400):**
+```json
+{
+  "error": {
+    "code": "PLAN_LIMIT_EXCEEDED",
+    "message": "Free plan limited to 1 custom server",
+    "details": {
+      "plan": "free",
+      "limit": 1,
+      "current_count": 1,
+      "upgrade_to": "pro"
+    }
+  }
+}
+```
+
+---
+
+## GET /custom-packs/mcp-servers
+
+**List all custom servers for user**
+
+### Authentication
+Required
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/custom-packs/mcp-servers" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "servers": [
+    {
+      "id": "server_custom_123",
+      "name": "my-internal-api",
+      "display_name": "Internal API Tools",
+      "description": "Tools for our internal REST API",
+      "created_at": 1705315800,
+      "updated_at": 1705315800,
+      "used_in_packs": 2
+    },
+    {
+      "id": "server_custom_456",
+      "name": "legacy-system",
+      "display_name": "Legacy System API",
+      "description": "Integration with legacy ERP system",
+      "created_at": 1705314000,
+      "used_in_packs": 1
+    }
+  ],
+  "total": 2
+}
+```
+
+---
+
+## POST /custom-packs/packs
+
+**Create a custom pack**
+
+### Authentication
+Required
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Pack name |
+| `description` | string | Yes | Pack description |
+| `servers` | array | No | List of server IDs/names |
+
+### Request Example
+
+```bash
+curl -X POST "https://api.agent-corex.com/custom-packs/packs" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Backend Development",
+    "description": "Tools for backend API development",
+    "servers": ["github-mcp", "my-internal-api", "postgresql-mcp"]
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "id": "pack_dev_123",
+  "name": "Backend Development",
+  "description": "Tools for backend API development",
+  "servers": [
+    {
+      "id": "github-mcp",
+      "name": "github-mcp",
+      "display_name": "GitHub",
+      "tools_count": 12
+    },
+    {
+      "id": "server_custom_123",
+      "name": "my-internal-api",
+      "display_name": "Internal API Tools",
+      "tools_count": 8
+    },
+    {
+      "id": "postgresql-mcp",
+      "name": "postgresql-mcp",
+      "display_name": "PostgreSQL",
+      "tools_count": 15
+    }
+  ],
+  "total_tools": 35,
+  "created_at": 1705315800,
+  "updated_at": 1705315800
+}
+```
+
+---
+
+## GET /custom-packs/packs
+
+**List all custom packs**
+
+### Authentication
+Required
+
+### Query Parameters
+
+| Parameter | Type | Default |
+|-----------|------|---------|
+| `limit` | integer | 20 |
+| `offset` | integer | 0 |
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/custom-packs/packs" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "packs": [
+    {
+      "id": "pack_dev_123",
+      "name": "Backend Development",
+      "description": "Tools for backend API development",
+      "servers_count": 3,
+      "total_tools": 35,
+      "enabled": true,
+      "created_at": 1705315800,
+      "updated_at": 1705315800
+    },
+    {
+      "id": "pack_devops_456",
+      "name": "DevOps Toolkit",
+      "description": "Infrastructure and deployment tools",
+      "servers_count": 5,
+      "total_tools": 48,
+      "enabled": false,
+      "created_at": 1705300000,
+      "updated_at": 1705310000
+    }
+  ],
+  "pagination": {
+    "limit": 20,
+    "offset": 0,
+    "total": 2
+  }
+}
+```
+
+---
+
+## GET /custom-packs/packs/{pack_id}
+
+**Get specific pack details**
+
+### Authentication
+Required
+
+### Path Parameters
+
+| Parameter | Type | Required |
+|-----------|------|----------|
+| `pack_id` | string | Yes |
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/custom-packs/packs/pack_dev_123" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "id": "pack_dev_123",
+  "name": "Backend Development",
+  "description": "Tools for backend API development",
+  "servers": [
+    {
+      "id": "github-mcp",
+      "name": "github-mcp",
+      "display_name": "GitHub",
+      "description": "Git version control and GitHub operations",
+      "tools": [
+        {
+          "name": "create_pull_request",
+          "description": "Create a new pull request"
+        },
+        {
+          "name": "create_issue",
+          "description": "Create a new GitHub issue"
+        }
+      ],
+      "tools_count": 12
+    }
+  ],
+  "total_servers": 3,
+  "total_tools": 35,
+  "enabled": true,
+  "created_at": 1705315800,
+  "updated_at": 1705315800
+}
+```
+
+---
+
+## PATCH /custom-packs/packs/{pack_id}
+
+**Update pack details**
+
+### Authentication
+Required
+
+### Request Body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | New pack name |
+| `description` | string | New description |
+
+### Request Example
+
+```bash
+curl -X PATCH "https://api.agent-corex.com/custom-packs/packs/pack_dev_123" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Backend Development & DevOps",
+    "description": "Tools for full backend development lifecycle"
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "id": "pack_dev_123",
+  "name": "Backend Development & DevOps",
+  "description": "Tools for full backend development lifecycle",
+  "updated_at": 1705315900
+}
+```
+
+---
+
+## DELETE /custom-packs/packs/{pack_id}
+
+**Delete a pack**
+
+### Authentication
+Required
+
+### Request Example
+
+```bash
+curl -X DELETE "https://api.agent-corex.com/custom-packs/packs/pack_dev_123" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "id": "pack_dev_123",
+  "status": "deleted",
+  "message": "Pack deleted successfully"
+}
+```
+
+---
+
+## POST /custom-packs/packs/{pack_id}/servers
+
+**Add server to pack**
+
+### Authentication
+Required
+
+### Request Body
+
+| Field | Type | Required |
+|-------|------|----------|
+| `server` | string | Yes |
+
+### Request Example
+
+```bash
+curl -X POST "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/servers" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server": "redis-mcp"
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "pack_id": "pack_dev_123",
+  "server": "redis-mcp",
+  "status": "added",
+  "total_servers": 4
+}
+```
+
+---
+
+## DELETE /custom-packs/packs/{pack_id}/servers/{server_name}
+
+**Remove server from pack**
+
+### Authentication
+Required
+
+### Path Parameters
+
+| Parameter | Type | Required |
+|-----------|------|----------|
+| `pack_id` | string | Yes |
+| `server_name` | string | Yes |
+
+### Request Example
+
+```bash
+curl -X DELETE "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/servers/redis-mcp" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "pack_id": "pack_dev_123",
+  "server": "redis-mcp",
+  "status": "removed",
+  "total_servers": 3
+}
+```
+
+---
+
+## PUT /custom-packs/packs/{pack_id}/servers
+
+**Replace all servers in pack**
+
+### Authentication
+Required
+
+### Request Body
+
+| Field | Type | Required |
+|-------|------|----------|
+| `servers` | array | Yes |
+
+### Request Example
+
+```bash
+curl -X PUT "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/servers" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "servers": ["github-mcp", "postgresql-mcp", "redis-mcp"]
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "pack_id": "pack_dev_123",
+  "servers": ["github-mcp", "postgresql-mcp", "redis-mcp"],
+  "total_servers": 3
+}
+```
+
+---
+
+## GET /custom-packs/packs/{pack_id}/install
+
+**Get install command for pack**
+
+### Authentication
+Required
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/install" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "pack_id": "pack_dev_123",
+  "command": "agent-corex pack install pack_dev_123",
+  "install_steps": [
+    "Install required servers",
+    "Download configurations",
+    "Enable tools"
+  ]
+}
+```
+
+---
+
+## Use Cases
+
+### Use Case 1: Team Workflow Pack
+
+**Goal:** Create a pack for frontend development team
+
+```bash
+# Step 1: Create custom server for design system
+curl -X POST "https://api.agent-corex.com/custom-packs/mcp-servers" \
+  -d '{
+    "name": "design-system-api",
+    "display_name": "Design System API",
+    "description": "Internal design system component tools"
+  }'
+
+# Step 2: Create pack combining design tools with GitHub
+curl -X POST "https://api.agent-corex.com/custom-packs/packs" \
+  -d '{
+    "name": "Frontend Development",
+    "description": "Design, git, and deployment tools",
+    "servers": ["design-system-api", "github-mcp", "vercel-mcp"]
+  }'
+
+# Step 3: Enable it
+curl -X POST "https://api.agent-corex.com/packs/enable" \
+  -d '{"pack_id": "pack_frontend_123"}'
+```
+
+---
+
+### Use Case 2: Multi-Service API Pack
+
+**Goal:** Manage multiple internal services
+
+```bash
+# Create servers for each service
+for service in auth payments notifications; do
+  curl -X POST "https://api.agent-corex.com/custom-packs/mcp-servers" \
+    -d "{
+      \"name\": \"$service-service\",
+      \"display_name\": \"$service Service API\"
+    }"
+done
+
+# Create pack combining all
+curl -X POST "https://api.agent-corex.com/custom-packs/packs" \
+  -d '{
+    "name": "Microservices",
+    "servers": ["auth-service", "payments-service", "notifications-service"]
+  }'
+```
+
+---
+
+## Best Practices
+
+### 1. Logical Grouping
+
+```javascript
+// ✅ Good - Related servers together
+const workflowPack = {
+  name: "CI/CD Pipeline",
+  servers: ["github-mcp", "jenkins-mcp", "slack-mcp"]
+};
+
+// ❌ Bad - Random collection
+const randomPack = {
+  name: "Everything",
+  servers: ["github", "aws", "slack", "postgresql"]
+};
+```
+
+---
+
+### 2. Naming Convention
+
+```javascript
+// ✅ Good - Clear, descriptive names
+{
+  name: "Backend-Development",
+  servers: ["github-mcp", "postgresql-mcp", "redis-mcp"]
+}
+
+{
+  name: "DevOps-Infrastructure",
+  servers: ["aws-mcp", "terraform-mcp", "kubernetes-mcp"]
+}
+
+// ❌ Bad - Ambiguous names
+{
+  name: "Pack1",
+  servers: ["mcp-1", "mcp-2", "mcp-3"]
+}
+```
+
+---
+
+### 3. Version Server Configurations
+
+```javascript
+// Track server versions in custom servers
+{
+  name: "internal-api-v2",
+  display_name: "Internal API (v2.1.3)",
+  description: "Production version of internal API",
+  config: {
+    version: "2.1.3",
+    deployment: "production",
+    documentation: "https://api.internal.com/docs"
+  }
+}
+```
+
+---
+
+### 4. Document Pack Usage
+
+```javascript
+// Add detailed descriptions
+{
+  name: "Data-Pipeline",
+  description: `
+    Tools for ETL and data processing:
+    - Extract: kafka-mcp, s3-mcp
+    - Transform: spark-mcp, dbt-mcp
+    - Load: postgresql-mcp, snowflake-mcp
+    
+    Used by: Data Engineering team
+    On-call: @data-eng-oncall
+  `
+}
+```
+
+---
+
+## Management Workflow
+
+### Create and Configure
+
+```javascript
+async function setupPack(packConfig) {
+  // 1. Create custom servers if needed
+  const servers = [];
+  for (const srv of packConfig.custom_servers) {
+    const created = await createServer(srv);
+    servers.push(created.id);
+  }
+  
+  // 2. Create pack
+  const pack = await createPack({
+    name: packConfig.name,
+    description: packConfig.description,
+    servers: servers.concat(packConfig.standard_servers)
+  });
+  
+  // 3. Enable pack
+  await enablePack({ pack_id: pack.id });
+  
+  return pack;
+}
+```
+
+---
+
+### Update and Migrate
+
+```javascript
+async function migratePackServers(packId, oldServer, newServer) {
+  // Remove old
+  await removeServerFromPack(packId, oldServer);
+  
+  // Add new
+  await addServerToPack(packId, newServer);
+  
+  // Get updated pack
+  return await getPack(packId);
+}
+```
+
+---
+
+### Archive and Cleanup
+
+```javascript
+async function archivePack(packId) {
+  // Get all servers
+  const pack = await getPack(packId);
+  const serverIds = pack.servers.map(s => s.id);
+  
+  // Disable each server
+  for (const serverId of serverIds) {
+    await toggleServer(serverId, false);
+  }
+  
+  // Delete pack
+  await deletePack(packId);
+  
+  console.log(`Pack ${packId} archived`);
+}
+```
+
+---
+
+## Error Handling
+
+### Plan Limit Exceeded
+
+```javascript
+async function safeCreatePack(packConfig) {
+  try {
+    return await createPack(packConfig);
+  } catch (error) {
+    if (error.code === 'PLAN_LIMIT_EXCEEDED') {
+      console.error('Plan limit reached');
+      console.error('Current:', error.details.current_count);
+      console.error('Limit:', error.details.limit);
+      console.log('Upgrade to:', error.details.upgrade_to);
+      throw error;
+    }
+    throw error;
+  }
+}
+```
+
+---
+
+### Server Not Found
+
+```javascript
+async function addServerSafe(packId, serverName) {
+  try {
+    return await addServerToPack(packId, serverName);
+  } catch (error) {
+    if (error.code === 'SERVER_NOT_FOUND') {
+      // List available servers
+      const servers = await listAvailableServers();
+      console.error(`Server "${serverName}" not found`);
+      console.log('Available servers:', servers.map(s => s.name));
+    }
+    throw error;
+  }
+}
+```
+
+---
+
+## Integration with Tools
+
+Once pack is enabled, use tools:
+
+```bash
+# Tools from enabled pack are discoverable
+curl "https://api.agent-corex.com/retrieve_tools?query=create+github+issue" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Response includes tools from all servers in enabled packs
+{
+  "tools": [
+    {
+      "name": "create_issue",
+      "server": "github-mcp",
+      "description": "Create GitHub issue"
+    }
+  ]
+}
+```
+
+---
+
+## See Also
+
+- [MCP Servers](/api-reference/mcp-servers)
+- [Tool Discovery](/api-reference/tool-discovery)
+- [Capabilities & Packs](/api-reference/capabilities)
+- [Custom Packs Examples](/examples/custom-packs)
+

@@ -1,0 +1,483 @@
+---
+title: 'MCP Servers Management'
+description: 'Install, configure, and manage Model Context Protocol servers'
+---
+
+# MCP Servers Management API
+
+Install, enable, and manage MCP servers that provide tools.
+
+---
+
+## Overview
+
+MCP servers expose tools through standardized interfaces. This API lets you:
+
+- List available MCP servers
+- Toggle server state (enable/disable)
+- Manage custom server definitions
+- Sync configuration across devices
+
+---
+
+## GET /mcp_servers
+
+**List all MCP servers with user state**
+
+### Authentication
+Required
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/mcp_servers" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "servers": [
+    {
+      "name": "github-mcp",
+      "display_name": "GitHub",
+      "description": "GitHub API and Git operations",
+      "url": "https://github.com",
+      "enabled": true,
+      "installed": true,
+      "tools_count": 12,
+      "icon": "github",
+      "category": "version-control"
+    },
+    {
+      "name": "aws-mcp",
+      "display_name": "AWS",
+      "description": "Amazon Web Services",
+      "url": "https://aws.amazon.com",
+      "enabled": false,
+      "installed": true,
+      "tools_count": 28,
+      "icon": "aws",
+      "category": "infrastructure"
+    }
+  ],
+  "total": 25,
+  "enabled_count": 12
+}
+```
+
+---
+
+## POST /mcp_servers/toggle
+
+**Enable or disable an MCP server**
+
+### Authentication
+Required
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `server` | string | Yes | Server name |
+| `enabled` | boolean | Yes | Enable/disable |
+
+### Request Example
+
+**Enable Server:**
+```bash
+curl -X POST "https://api.agent-corex.com/mcp_servers/toggle" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server": "aws-mcp",
+    "enabled": true
+  }'
+```
+
+**Disable Server:**
+```bash
+curl -X POST "https://api.agent-corex.com/mcp_servers/toggle" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server": "aws-mcp",
+    "enabled": false
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "server": "aws-mcp",
+  "enabled": true,
+  "status": "activated",
+  "tools_enabled": 28
+}
+```
+
+### Error Cases
+
+**Server not found (404):**
+```json
+{
+  "error": {
+    "code": "SERVER_NOT_FOUND",
+    "message": "Server 'aws-mcp' not found"
+  }
+}
+```
+
+---
+
+## GET /tools/installed
+
+**List only user-installed tools**
+
+### Authentication
+Required
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/tools/installed" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "tools": [
+    {
+      "name": "create_pull_request",
+      "server": "github-mcp",
+      "description": "Create a new pull request",
+      "enabled": true
+    }
+  ],
+  "total": 40
+}
+```
+
+---
+
+## GET /mcp_registry
+
+**List all available MCP servers from registry**
+
+### Authentication
+Not required
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/mcp_registry"
+```
+
+### Response Format
+
+```json
+{
+  "servers": [
+    {
+      "name": "github-mcp",
+      "display_name": "GitHub",
+      "description": "GitHub API and Git operations",
+      "version": "1.0.0",
+      "tools_count": 12,
+      "category": "version-control",
+      "tags": ["git", "github", "pr", "issues"],
+      "url": "https://github.com",
+      "icon": "github"
+    }
+  ],
+  "total": 25
+}
+```
+
+---
+
+## GET /mcp_registry/{name}
+
+**Get specific MCP server from registry**
+
+### Authentication
+Not required
+
+### Path Parameters
+
+| Parameter | Type | Required |
+|-----------|------|----------|
+| `name` | string | Yes |
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/mcp_registry/github-mcp"
+```
+
+### Response Format
+
+```json
+{
+  "name": "github-mcp",
+  "display_name": "GitHub",
+  "description": "GitHub API and Git operations",
+  "version": "1.0.0",
+  "url": "https://github.com",
+  "icon": "github",
+  "category": "version-control",
+  "tags": ["git", "github", "pr", "issues"],
+  "tools": [
+    {
+      "name": "create_pull_request",
+      "description": "Create a new pull request"
+    },
+    {
+      "name": "create_issue",
+      "description": "Create a new GitHub issue"
+    }
+  ],
+  "tools_count": 12,
+  "authentication": {
+    "type": "token",
+    "required": true,
+    "env_var": "GITHUB_TOKEN"
+  },
+  "rate_limit": {
+    "requests_per_hour": 60
+  },
+  "supported_platforms": ["linux", "macos", "windows"]
+}
+```
+
+---
+
+## Admin: MCP Registry Management
+
+### POST /admin/mcp_registry
+
+**Create new MCP registry entry**
+
+**Auth:** Required (Admin)
+
+```bash
+curl -X POST "https://api.agent-corex.com/admin/mcp_registry" \
+  -H "Authorization: Bearer ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "custom-mcp",
+    "display_name": "Custom Server",
+    "description": "My custom MCP server",
+    "url": "https://my-server.com",
+    "icon": "custom",
+    "category": "custom",
+    "tools_count": 5
+  }'
+```
+
+---
+
+### PATCH /admin/mcp_registry/{name}
+
+**Update MCP registry entry**
+
+**Auth:** Required (Admin)
+
+```bash
+curl -X PATCH "https://api.agent-corex.com/admin/mcp_registry/github-mcp" \
+  -H "Authorization: Bearer ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Updated description",
+    "tools_count": 15
+  }'
+```
+
+---
+
+### DELETE /admin/mcp_registry/{name}
+
+**Delete MCP registry entry**
+
+**Auth:** Required (Admin)
+
+```bash
+curl -X DELETE "https://api.agent-corex.com/admin/mcp_registry/github-mcp" \
+  -H "Authorization: Bearer ADMIN_KEY"
+```
+
+---
+
+### POST /admin/mcp_registry/sync-to-supabase
+
+**Sync all registry entries to Supabase**
+
+**Auth:** Required (Admin)
+
+```bash
+curl -X POST "https://api.agent-corex.com/admin/mcp_registry/sync-to-supabase" \
+  -H "Authorization: Bearer ADMIN_KEY"
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "synced_count": 25,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+---
+
+## Server Categories
+
+Available categories:
+
+| Category | Examples |
+|----------|----------|
+| `version-control` | GitHub, GitLab, Bitbucket |
+| `infrastructure` | AWS, Azure, GCP, Terraform |
+| `monitoring` | Datadog, New Relic, Grafana |
+| `messaging` | Slack, Discord, Telegram |
+| `databases` | PostgreSQL, MongoDB, Redis |
+| `ci-cd` | GitHub Actions, Jenkins, GitLab CI |
+| `development` | VS Code, JetBrains, npm |
+| `communication` | Email, SMS, Twilio |
+| `custom` | User-defined servers |
+
+---
+
+## Server Authentication
+
+### GitHub Server Example
+
+```json
+{
+  "server": "github-mcp",
+  "authentication": {
+    "type": "token",
+    "required": true,
+    "env_var": "GITHUB_TOKEN",
+    "setup_url": "https://github.com/settings/tokens"
+  }
+}
+```
+
+### AWS Server Example
+
+```json
+{
+  "server": "aws-mcp",
+  "authentication": {
+    "type": "credentials",
+    "required": true,
+    "env_vars": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"],
+    "setup_url": "https://aws.amazon.com/iam"
+  }
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Enable Only Needed Servers
+
+```javascript
+// ✅ Good - Enable specific servers
+await toggleServer('github-mcp', true);
+await toggleServer('aws-mcp', true);
+
+// ❌ Bad - Enable all servers
+const servers = await listServers();
+servers.forEach(s => toggleServer(s.name, true));
+```
+
+### 2. Check Before Installation
+
+```javascript
+async function installServer(serverName) {
+  const server = await getServerFromRegistry(serverName);
+  
+  // Check if authentication is available
+  if (server.authentication.required) {
+    const token = process.env[server.authentication.env_var];
+    if (!token) {
+      throw new Error(`Set ${server.authentication.env_var} environment variable`);
+    }
+  }
+  
+  return toggleServer(serverName, true);
+}
+```
+
+### 3. Monitor Server Health
+
+```javascript
+async function checkServerHealth() {
+  const servers = await listServers();
+  
+  const health = servers.map(s => ({
+    name: s.name,
+    enabled: s.enabled,
+    tools: s.tools_count,
+    status: s.enabled ? 'active' : 'inactive'
+  }));
+  
+  return health;
+}
+```
+
+---
+
+## Server Synchronization
+
+Sync enabled servers across devices:
+
+```javascript
+// Device 1: Save state
+async function pushServerState() {
+  const servers = await listServers();
+  const enabled = servers.filter(s => s.enabled).map(s => s.name);
+  
+  return await pushUserServers({
+    enabled_servers: enabled
+  });
+}
+
+// Device 2: Load state
+async function pullServerState() {
+  const user = await getUserServers();
+  
+  for (const server of user.enabled_servers) {
+    await toggleServer(server, true);
+  }
+}
+```
+
+---
+
+## Rate Limiting
+
+Server management endpoints:
+
+| Plan | Requests/min |
+|------|--------------|
+| Free | 10 |
+| Pro | 100 |
+| Enterprise | Custom |
+
+---
+
+## See Also
+
+- [Tool Discovery](/api-reference/tool-discovery)
+- [Capabilities & Packs](/api-reference/capabilities)
+- [Custom Packs](/api-reference/custom-packs)
+- [MCP Setup Guide](/guides/mcp-setup)
+

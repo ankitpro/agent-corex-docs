@@ -1,0 +1,781 @@
+---
+title: 'Webhooks & Events'
+description: 'Real-time event notifications for asynchronous operations'
+---
+
+# Webhooks & Events API
+
+Receive real-time notifications for job completions, tool executions, and other events.
+
+---
+
+## Overview
+
+Webhooks eliminate polling. Instead of repeatedly checking job status, subscribe to events:
+
+```
+Instead of:  poll → poll → poll → DONE
+Use:         DONE → webhook notification
+```
+
+---
+
+## Event Types
+
+| Event | When | Useful For |
+|-------|------|-----------|
+| `job.queued` | Job created | Logging, analytics |
+| `job.started` | Job begins execution | Progress tracking |
+| `job.completed` | Job finished successfully | Results processing |
+| `job.failed` | Job execution error | Error alerting |
+| `job.canceled` | User canceled job | Cleanup |
+| `tool.executed` | Tool execution complete | Audit logs |
+| `pack.enabled` | Pack enabled | Notifications |
+| `server.installed` | Server installed | Tracking |
+
+---
+
+## Setup
+
+### Register Webhook Endpoint
+
+```bash
+curl -X POST "https://api.agent-corex.com/webhooks" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-domain.com/webhooks/agent-corex",
+    "events": ["job.completed", "job.failed"],
+    "description": "Job status notifications"
+  }'
+```
+
+### Response
+
+```json
+{
+  "id": "hook_abc123",
+  "url": "https://your-domain.com/webhooks/agent-corex",
+  "events": ["job.completed", "job.failed"],
+  "status": "active",
+  "created_at": 1705315800,
+  "secret": "wh_secret_abc123xyz"
+}
+```
+
+---
+
+## Webhook Payload Format
+
+All webhooks follow this structure:
+
+```json
+{
+  "id": "evt_abc123def456",
+  "event": "job.completed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "api_version": "v1",
+  "data": {
+    "job_id": "job_xyz789",
+    "tool": "create_pull_request",
+    "status": "completed",
+    "result": { /* event-specific data */ }
+  }
+}
+```
+
+---
+
+## Event Payloads
+
+### job.queued
+
+Fired when job is submitted to queue.
+
+```json
+{
+  "event": "job.queued",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "job_id": "job_abc123",
+    "tool": "deploy_to_aws",
+    "created_at": 1705315800,
+    "arguments": {
+      "environment": "production",
+      "service": "api"
+    }
+  }
+}
+```
+
+---
+
+### job.started
+
+Fired when job execution begins.
+
+```json
+{
+  "event": "job.started",
+  "timestamp": "2024-01-15T10:30:05Z",
+  "data": {
+    "job_id": "job_abc123",
+    "tool": "deploy_to_aws",
+    "started_at": 1705315805,
+    "estimated_duration_ms": 120000
+  }
+}
+```
+
+---
+
+### job.completed
+
+Fired when job finishes successfully.
+
+```json
+{
+  "event": "job.completed",
+  "timestamp": "2024-01-15T10:32:05Z",
+  "data": {
+    "job_id": "job_abc123",
+    "tool": "deploy_to_aws",
+    "status": "completed",
+    "created_at": 1705315800,
+    "started_at": 1705315805,
+    "completed_at": 1705315925,
+    "execution_time_ms": 120000,
+    "result": {
+      "deployment_id": "deploy_abc",
+      "status": "success",
+      "url": "https://api.prod.example.com",
+      "version": "1.2.3"
+    }
+  }
+}
+```
+
+---
+
+### job.failed
+
+Fired when job execution fails.
+
+```json
+{
+  "event": "job.failed",
+  "timestamp": "2024-01-15T10:31:30Z",
+  "data": {
+    "job_id": "job_abc123",
+    "tool": "deploy_to_aws",
+    "status": "failed",
+    "created_at": 1705315800,
+    "started_at": 1705315805,
+    "completed_at": 1705315890,
+    "error": {
+      "code": "INSUFFICIENT_PERMISSIONS",
+      "message": "AWS credentials insufficient",
+      "details": {
+        "action": "ec2:RunInstances",
+        "resource": "arn:aws:ec2:*:*:instance/*"
+      }
+    }
+  }
+}
+```
+
+---
+
+### job.canceled
+
+Fired when job is canceled.
+
+```json
+{
+  "event": "job.canceled",
+  "timestamp": "2024-01-15T10:30:30Z",
+  "data": {
+    "job_id": "job_abc123",
+    "tool": "deploy_to_aws",
+    "status": "canceled",
+    "created_at": 1705315800,
+    "canceled_at": 1705315830,
+    "reason": "user_requested"
+  }
+}
+```
+
+---
+
+### tool.executed
+
+Fired after tool execution (sync or async).
+
+```json
+{
+  "event": "tool.executed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "execution_id": "exec_abc123",
+    "tool": "create_pull_request",
+    "status": "success",
+    "execution_time_ms": 2450,
+    "arguments": {
+      "repository": "owner/repo",
+      "title": "Fix critical bug"
+    },
+    "result": {
+      "pr_number": 123,
+      "pr_url": "https://github.com/owner/repo/pull/123"
+    }
+  }
+}
+```
+
+---
+
+### pack.enabled
+
+Fired when pack is enabled.
+
+```json
+{
+  "event": "pack.enabled",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "pack_id": "pack_dev_123",
+    "name": "Backend Development",
+    "servers": ["github-mcp", "postgresql-mcp"],
+    "total_tools": 27
+  }
+}
+```
+
+---
+
+### server.installed
+
+Fired when server is installed.
+
+```json
+{
+  "event": "server.installed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "server_name": "aws-mcp",
+    "display_name": "AWS",
+    "tools_enabled": 28
+  }
+}
+```
+
+---
+
+## Security
+
+### Verify Webhook Signature
+
+Every webhook includes an `X-Agent-CoreX-Signature` header for verification:
+
+```javascript
+const crypto = require('crypto');
+
+function verifyWebhook(payload, signature, secret) {
+  const hash = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  
+  return `sha256=${hash}` === signature;
+}
+
+// In your Express handler
+app.post('/webhooks/agent-corex', (req, res) => {
+  const signature = req.headers['x-agent-corex-signature'];
+  const secret = process.env.WEBHOOK_SECRET;
+  
+  if (!verifyWebhook(req.body, signature, secret)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  
+  // Process webhook
+  handleWebhook(req.body);
+  res.json({ received: true });
+});
+```
+
+---
+
+### Python Verification
+
+```python
+import hmac
+import hashlib
+import json
+
+def verify_webhook(payload_str: str, signature: str, secret: str) -> bool:
+    expected = 'sha256=' + hmac.new(
+        secret.encode(),
+        payload_str.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected)
+
+# In Flask
+@app.post('/webhooks/agent-corex')
+def handle_webhook():
+    payload = request.get_data()
+    signature = request.headers.get('X-Agent-CoreX-Signature')
+    
+    if not verify_webhook(payload, signature, os.environ['WEBHOOK_SECRET']):
+        return {'error': 'Invalid signature'}, 401
+    
+    # Process webhook
+    data = json.loads(payload)
+    handle_event(data)
+    return {'received': True}
+```
+
+---
+
+## Implementation
+
+### Node.js/Express Example
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/webhooks/agent-corex', (req, res) => {
+  const { event, data } = req.body;
+  
+  switch (event) {
+    case 'job.completed':
+      handleJobCompleted(data);
+      break;
+      
+    case 'job.failed':
+      handleJobFailed(data);
+      break;
+      
+    case 'job.started':
+      logJobProgress(data);
+      break;
+      
+    default:
+      console.log(`Unknown event: ${event}`);
+  }
+  
+  res.json({ received: true });
+});
+
+function handleJobCompleted(data) {
+  console.log(`Job ${data.job_id} completed`);
+  console.log(`Result:`, data.result);
+  
+  // Send notification
+  sendSlackMessage(`✅ Deployment successful: ${data.result.url}`);
+  
+  // Update database
+  updateJobStatus(data.job_id, 'completed', data.result);
+}
+
+function handleJobFailed(data) {
+  console.error(`Job ${data.job_id} failed`);
+  console.error(`Error:`, data.error);
+  
+  // Send alert
+  sendSlackMessage(`❌ Deployment failed: ${data.error.message}`);
+  
+  // Log error for debugging
+  logError(data.job_id, data.error);
+}
+
+app.listen(3000, () => console.log('Webhook server running'));
+```
+
+---
+
+### Django/DRF Example
+
+```python
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def handle_webhook(request):
+    """Handle Agent-CoreX webhooks"""
+    
+    try:
+        data = json.loads(request.body)
+        event = data.get('event')
+        
+        if event == 'job.completed':
+            handle_job_completed(data['data'])
+        elif event == 'job.failed':
+            handle_job_failed(data['data'])
+        elif event == 'job.started':
+            log_job_progress(data['data'])
+        else:
+            logger.warning(f"Unknown event: {event}")
+        
+        return JsonResponse({'received': True})
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Webhook processing error: {e}")
+        return JsonResponse({'error': 'Internal error'}, status=500)
+
+def handle_job_completed(data):
+    """Process completed job"""
+    job_id = data['job_id']
+    result = data['result']
+    
+    logger.info(f"Job {job_id} completed successfully")
+    
+    # Update database
+    Job.objects.filter(job_id=job_id).update(
+        status='completed',
+        result=result
+    )
+    
+    # Send notifications
+    send_slack_notification(f"✅ Job {job_id} completed")
+
+def handle_job_failed(data):
+    """Process failed job"""
+    job_id = data['job_id']
+    error = data['error']
+    
+    logger.error(f"Job {job_id} failed: {error['message']}")
+    
+    # Update database
+    Job.objects.filter(job_id=job_id).update(
+        status='failed',
+        error=error
+    )
+    
+    # Send alert
+    send_slack_alert(f"❌ Job {job_id} failed: {error['message']}")
+```
+
+---
+
+### Go Example
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"io"
+	"log"
+	"net/http"
+)
+
+type WebhookPayload struct {
+	Event string      `json:"event"`
+	Data  interface{} `json:"data"`
+}
+
+type JobData struct {
+	JobID    string `json:"job_id"`
+	Tool     string `json:"tool"`
+	Status   string `json:"status"`
+	Result   interface{} `json:"result"`
+	Error    interface{} `json:"error"`
+}
+
+func handleWebhook(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var payload WebhookPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	switch payload.Event {
+	case "job.completed":
+		var jobData JobData
+		jsonData, _ := json.Marshal(payload.Data)
+		json.Unmarshal(jsonData, &jobData)
+		handleJobCompleted(jobData)
+
+	case "job.failed":
+		var jobData JobData
+		jsonData, _ := json.Marshal(payload.Data)
+		json.Unmarshal(jsonData, &jobData)
+		handleJobFailed(jobData)
+
+	default:
+		log.Printf("Unknown event: %s", payload.Event)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"received": true})
+}
+
+func handleJobCompleted(data JobData) {
+	log.Printf("Job %s completed successfully", data.JobID)
+	// Process result
+}
+
+func handleJobFailed(data JobData) {
+	log.Printf("Job %s failed: %v", data.JobID, data.Error)
+	// Handle error
+}
+
+func main() {
+	http.HandleFunc("/webhooks/agent-corex", handleWebhook)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+```
+
+---
+
+## Webhook Management
+
+### List Webhooks
+
+```bash
+curl "https://api.agent-corex.com/webhooks" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Response:
+
+```json
+{
+  "webhooks": [
+    {
+      "id": "hook_abc123",
+      "url": "https://your-domain.com/webhooks/agent-corex",
+      "events": ["job.completed", "job.failed"],
+      "status": "active",
+      "created_at": 1705315800,
+      "last_used": 1705315900,
+      "failed_attempts": 0
+    }
+  ]
+}
+```
+
+---
+
+### Update Webhook
+
+```bash
+curl -X PATCH "https://api.agent-corex.com/webhooks/hook_abc123" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": ["job.completed", "job.failed", "tool.executed"]
+  }'
+```
+
+---
+
+### Delete Webhook
+
+```bash
+curl -X DELETE "https://api.agent-corex.com/webhooks/hook_abc123" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+---
+
+## Best Practices
+
+### 1. Verify Signatures
+
+```javascript
+// ✅ Always verify
+const signature = req.headers['x-agent-corex-signature'];
+if (!verifySignature(req.body, signature)) {
+  return res.status(401).send('Unauthorized');
+}
+
+// ❌ Never skip verification
+app.post('/webhook', (req, res) => {
+  // Processing without verification is insecure
+});
+```
+
+---
+
+### 2. Respond Quickly
+
+```javascript
+// ✅ Good - Respond immediately, process async
+app.post('/webhook', async (req, res) => {
+  res.json({ received: true }); // Return fast
+  
+  // Process async to avoid timeout
+  setImmediate(() => processWebhook(req.body));
+});
+
+// ❌ Bad - Slow response causes timeout
+app.post('/webhook', async (req, res) => {
+  await processWebhook(req.body); // Could timeout
+  res.json({ received: true });
+});
+```
+
+---
+
+### 3. Implement Retry Logic
+
+```javascript
+// Server retries failed webhooks (exponential backoff)
+// Implement idempotency to handle duplicate deliveries
+
+const processedEvents = new Set();
+
+function handleWebhook(event) {
+  // Idempotency key prevents duplicate processing
+  const idempotencyKey = `${event.id}-${event.timestamp}`;
+  
+  if (processedEvents.has(idempotencyKey)) {
+    console.log('Duplicate event, skipping');
+    return;
+  }
+  
+  // Process event
+  processEvent(event);
+  processedEvents.add(idempotencyKey);
+}
+```
+
+---
+
+### 4. Log Everything
+
+```javascript
+function handleWebhook(payload) {
+  const timestamp = new Date().toISOString();
+  
+  logger.info(`Webhook received: ${payload.event}`, {
+    event_id: payload.id,
+    event: payload.event,
+    timestamp: timestamp,
+    data_keys: Object.keys(payload.data)
+  });
+  
+  try {
+    processEvent(payload);
+    logger.info(`Webhook processed successfully`, { event_id: payload.id });
+  } catch (error) {
+    logger.error(`Webhook processing failed`, {
+      event_id: payload.id,
+      error: error.message,
+      stack: error.stack
+    });
+    throw error; // Let server retry
+  }
+}
+```
+
+---
+
+## Testing Webhooks
+
+### Using ngrok
+
+```bash
+# Start webhook server locally
+npm start
+
+# In another terminal, expose locally
+ngrok http 3000
+
+# Register webhook with ngrok URL
+curl -X POST "https://api.agent-corex.com/webhooks" \
+  -d '{
+    "url": "https://abc123.ngrok.io/webhooks/agent-corex",
+    "events": ["job.completed"]
+  }'
+
+# Trigger job
+# Watch webhook requests in ngrok console
+```
+
+---
+
+### Using Webhook.cool
+
+```bash
+# Get unique URL
+# https://webhook.cool/unique-id
+
+# Register with Agent-CoreX
+curl -X POST "https://api.agent-corex.com/webhooks" \
+  -d '{
+    "url": "https://webhook.cool/unique-id",
+    "events": ["job.completed"]
+  }'
+
+# Submit job
+# Check webhook.cool dashboard for requests
+```
+
+---
+
+## Debugging
+
+### Check Delivery History
+
+```bash
+curl "https://api.agent-corex.com/webhooks/hook_abc123/deliveries" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Response:
+
+```json
+{
+  "deliveries": [
+    {
+      "id": "dlv_abc123",
+      "event": "job.completed",
+      "status": "success",
+      "response_code": 200,
+      "timestamp": 1705315900,
+      "payload": { /* webhook payload */ }
+    },
+    {
+      "id": "dlv_def456",
+      "event": "job.failed",
+      "status": "failed",
+      "response_code": 500,
+      "error": "Internal Server Error",
+      "timestamp": 1705315850
+    }
+  ]
+}
+```
+
+---
+
+## See Also
+
+- [Tool Execution](/api-reference/tool-execution)
+- [Jobs Management](/api-reference/tool-execution#jobs)
+- [Error Handling](/api-reference/errors)
+- [Examples](/examples/webhooks)
+

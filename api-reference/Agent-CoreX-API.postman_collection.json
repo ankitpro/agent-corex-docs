@@ -1,0 +1,906 @@
+{
+  "info": {
+    "name": "Agent-CoreX API",
+    "description": "Complete Agent-CoreX API collection with 77 endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health & Auth",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/cli/start",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/cli/start",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "cli", "start"]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/cli/poll",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_code\": \"ABC123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/cli/poll",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "cli", "poll"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tool Discovery",
+      "item": [
+        {
+          "name": "GET /retrieve_tools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/retrieve_tools?query=create+github+pull+request&top_k=5",
+              "host": ["{{base_url}}"],
+              "path": ["retrieve_tools"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "create github pull request"
+                },
+                {
+                  "key": "top_k",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /v2/retrieve_tools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v2/retrieve_tools?query=deploy&top_k=5&use_hybrid_v3=true",
+              "host": ["{{base_url}}"],
+              "path": ["v2", "retrieve_tools"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "deploy"
+                },
+                {
+                  "key": "top_k",
+                  "value": "5"
+                },
+                {
+                  "key": "use_hybrid_v3",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /tools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tools",
+              "host": ["{{base_url}}"],
+              "path": ["tools"]
+            }
+          }
+        },
+        {
+          "name": "GET /tools/registry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tools/registry",
+              "host": ["{{base_url}}"],
+              "path": ["tools", "registry"]
+            }
+          }
+        },
+        {
+          "name": "GET /tools/registry/:tool_name",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tools/registry/create_pull_request",
+              "host": ["{{base_url}}"],
+              "path": ["tools", "registry", "create_pull_request"]
+            }
+          }
+        },
+        {
+          "name": "GET /v2/capabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v2/capabilities",
+              "host": ["{{base_url}}"],
+              "path": ["v2", "capabilities"]
+            }
+          }
+        },
+        {
+          "name": "GET /capabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/capabilities",
+              "host": ["{{base_url}}"],
+              "path": ["capabilities"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tool Execution",
+      "item": [
+        {
+          "name": "POST /execute_tool",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"create_pull_request\",\n  \"arguments\": {\n    \"repository\": \"owner/repo\",\n    \"title\": \"Fix critical bug\",\n    \"from_branch\": \"hotfix/bug\",\n    \"to_branch\": \"main\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/execute_tool",
+              "host": ["{{base_url}}"],
+              "path": ["execute_tool"]
+            }
+          }
+        },
+        {
+          "name": "POST /jobs/submit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"deploy_to_aws\",\n  \"arguments\": {\n    \"environment\": \"production\",\n    \"service\": \"api\",\n    \"version\": \"1.2.3\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/jobs/submit",
+              "host": ["{{base_url}}"],
+              "path": ["jobs", "submit"]
+            }
+          }
+        },
+        {
+          "name": "GET /jobs/:job_id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jobs/job_abc123",
+              "host": ["{{base_url}}"],
+              "path": ["jobs", "job_abc123"]
+            }
+          }
+        },
+        {
+          "name": "GET /jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jobs?limit=20&status=completed",
+              "host": ["{{base_url}}"],
+              "path": ["jobs"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /jobs/:job_id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jobs/job_abc123",
+              "host": ["{{base_url}}"],
+              "path": ["jobs", "job_abc123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MCP Servers",
+      "item": [
+        {
+          "name": "GET /mcp_servers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mcp_servers",
+              "host": ["{{base_url}}"],
+              "path": ["mcp_servers"]
+            }
+          }
+        },
+        {
+          "name": "POST /mcp_servers/toggle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"server\": \"aws-mcp\",\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mcp_servers/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["mcp_servers", "toggle"]
+            }
+          }
+        },
+        {
+          "name": "GET /tools/installed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tools/installed",
+              "host": ["{{base_url}}"],
+              "path": ["tools", "installed"]
+            }
+          }
+        },
+        {
+          "name": "GET /mcp_registry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mcp_registry",
+              "host": ["{{base_url}}"],
+              "path": ["mcp_registry"]
+            }
+          }
+        },
+        {
+          "name": "GET /mcp_registry/:name",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mcp_registry/github-mcp",
+              "host": ["{{base_url}}"],
+              "path": ["mcp_registry", "github-mcp"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Capabilities & Packs",
+      "item": [
+        {
+          "name": "GET /packs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/packs",
+              "host": ["{{base_url}}"],
+              "path": ["packs"]
+            }
+          }
+        },
+        {
+          "name": "GET /packs/:pack_id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/packs/pack_dev_123",
+              "host": ["{{base_url}}"],
+              "path": ["packs", "pack_dev_123"]
+            }
+          }
+        },
+        {
+          "name": "GET /packs/:pack_id/servers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/packs/pack_dev_123/servers",
+              "host": ["{{base_url}}"],
+              "path": ["packs", "pack_dev_123", "servers"]
+            }
+          }
+        },
+        {
+          "name": "POST /packs/enable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pack_id\": \"pack_dev_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/packs/enable",
+              "host": ["{{base_url}}"],
+              "path": ["packs", "enable"]
+            }
+          }
+        },
+        {
+          "name": "POST /capabilities/enable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capability_id\": \"git\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/capabilities/enable",
+              "host": ["{{base_url}}"],
+              "path": ["capabilities", "enable"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Custom Packs",
+      "item": [
+        {
+          "name": "POST /custom-packs/mcp-servers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"my-internal-api\",\n  \"display_name\": \"Internal API Tools\",\n  \"description\": \"Tools for internal REST API\",\n  \"url\": \"https://api.internal.com\",\n  \"icon\": \"api\",\n  \"category\": \"custom\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/custom-packs/mcp-servers",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "mcp-servers"]
+            }
+          }
+        },
+        {
+          "name": "GET /custom-packs/mcp-servers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/custom-packs/mcp-servers",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "mcp-servers"]
+            }
+          }
+        },
+        {
+          "name": "POST /custom-packs/packs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend Development\",\n  \"description\": \"Tools for backend development\",\n  \"servers\": [\"github-mcp\", \"postgresql-mcp\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/custom-packs/packs",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "packs"]
+            }
+          }
+        },
+        {
+          "name": "GET /custom-packs/packs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/custom-packs/packs",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "packs"]
+            }
+          }
+        },
+        {
+          "name": "GET /custom-packs/packs/:pack_id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/custom-packs/packs/pack_dev_123",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "packs", "pack_dev_123"]
+            }
+          }
+        },
+        {
+          "name": "PATCH /custom-packs/packs/:pack_id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend Development & DevOps\",\n  \"description\": \"Full backend development toolkit\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/custom-packs/packs/pack_dev_123",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "packs", "pack_dev_123"]
+            }
+          }
+        },
+        {
+          "name": "DELETE /custom-packs/packs/:pack_id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/custom-packs/packs/pack_dev_123",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "packs", "pack_dev_123"]
+            }
+          }
+        },
+        {
+          "name": "POST /custom-packs/packs/:pack_id/servers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"server\": \"redis-mcp\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/custom-packs/packs/pack_dev_123/servers",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "packs", "pack_dev_123", "servers"]
+            }
+          }
+        },
+        {
+          "name": "DELETE /custom-packs/packs/:pack_id/servers/:server_name",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/custom-packs/packs/pack_dev_123/servers/redis-mcp",
+              "host": ["{{base_url}}"],
+              "path": ["custom-packs", "packs", "pack_dev_123", "servers", "redis-mcp"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Billing & Plans",
+      "item": [
+        {
+          "name": "GET /billing/plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/billing/plans",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "plans"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /billing/user-limits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/billing/user-limits",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "user-limits"]
+            }
+          }
+        },
+        {
+          "name": "POST /billing/create-order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": \"pro\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/billing/create-order",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "create-order"]
+            }
+          }
+        },
+        {
+          "name": "POST /billing/verify-payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": \"pro\",\n  \"razorpay_order_id\": \"order_abc123\",\n  \"razorpay_payment_id\": \"pay_abc123\",\n  \"razorpay_signature\": \"sig_abc123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/billing/verify-payment",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "verify-payment"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics & Logging",
+      "item": [
+        {
+          "name": "POST /usage/event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"tool_execution\",\n  \"tool\": \"create_pull_request\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usage/event",
+              "host": ["{{base_url}}"],
+              "path": ["usage", "event"]
+            }
+          }
+        },
+        {
+          "name": "POST /query/log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Create GitHub pull request\",\n  \"source\": \"cli\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query/log",
+              "host": ["{{base_url}}"],
+              "path": ["query", "log"]
+            }
+          }
+        },
+        {
+          "name": "GET /queries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/queries?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["queries"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Free Tools & Recommender",
+      "item": [
+        {
+          "name": "GET /free-tools/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/free-tools/status",
+              "host": ["{{base_url}}"],
+              "path": ["free-tools", "status"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "POST /free-tools/run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool_slug\": \"github-create-pr\",\n  \"input\": {\n    \"repo\": \"owner/repo\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/free-tools/run",
+              "host": ["{{base_url}}"],
+              "path": ["free-tools", "run"]
+            }
+          }
+        },
+        {
+          "name": "GET /recommender/examples",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recommender/examples",
+              "host": ["{{base_url}}"],
+              "path": ["recommender", "examples"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "POST /recommender",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Create GitHub PR and deploy to AWS\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recommender",
+              "host": ["{{base_url}}"],
+              "path": ["recommender"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Servers",
+      "item": [
+        {
+          "name": "GET /user-servers/servers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user-servers/servers",
+              "host": ["{{base_url}}"],
+              "path": ["user-servers", "servers"]
+            }
+          }
+        },
+        {
+          "name": "POST /user-servers/servers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"installed_servers\": [\"github-mcp\", \"aws-mcp\"],\n  \"installed_packs\": [\"pack_dev_123\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user-servers/servers",
+              "host": ["{{base_url}}"],
+              "path": ["user-servers", "servers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "GET /settings/embedding",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/settings/embedding",
+              "host": ["{{base_url}}"],
+              "path": ["settings", "embedding"]
+            }
+          }
+        },
+        {
+          "name": "POST /settings/embedding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"openai\",\n  \"openai_model\": \"text-embedding-3-small\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/settings/embedding",
+              "host": ["{{base_url}}"],
+              "path": ["settings", "embedding"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.agent-corex.com",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "YOUR_API_KEY",
+      "type": "string"
+    }
+  ]
+}

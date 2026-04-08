@@ -60,11 +60,6 @@
       "name": "Twitter",
       "icon": "twitter",
       "url": "https://twitter.com/ankitko0l"
-    },
-    {
-      "name": "Community",
-      "icon": "slack",
-      "url": "https://slack.agent-corex.com"
     }
   ],
   "navigation": [
@@ -114,6 +109,15 @@
       "group": "API Reference",
       "pages": [
         "api-reference/overview",
+        "api-reference/complete-api-reference",
+        "api-reference/endpoints-quick-reference",
+        "api-reference/tool-discovery",
+        "api-reference/tool-execution",
+        "api-reference/mcp-servers",
+        "api-reference/custom-packs",
+        "api-reference/webhooks",
+        "api-reference/sdks",
+        "api-reference/errors",
         "api-reference/retrieve-tools",
         "api-reference/get-tool",
         "api-reference/execute-tool",

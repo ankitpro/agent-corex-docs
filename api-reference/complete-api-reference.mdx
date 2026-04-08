@@ -1,0 +1,1018 @@
+---
+title: 'Complete API Reference'
+description: 'Full Agent-CoreX API documentation - 77 endpoints across all features'
+---
+
+# Complete Agent-CoreX API Reference
+
+**77 Endpoints** organized by feature group with interactive playground.
+
+---
+
+## 📋 Endpoint Summary by Group
+
+| Group | Count | Description |
+|-------|-------|-------------|
+| **Tool Discovery** | 6 | Retrieve, filter, and manage tools |
+| **Tool Execution** | 2 | Execute tools and manage execution jobs |
+| **MCP Servers** | 8 | Manage MCP server installations and registry |
+| **Capabilities & Packs** | 15 | Enable capabilities, manage custom packs |
+| **Authentication** | 4 | API key and CLI device-flow auth |
+| **Usage & Analytics** | 8 | Track usage, view analytics dashboards |
+| **Moderation & Flagging** | 10 | Flag servers, manage reviews and verification |
+| **Billing & Plans** | 5 | Manage billing and plan upgrades |
+| **Admin Management** | 4 | User and system administration |
+| **Integrations** | 4 | Free tools, recommender, embeddings |
+| **Advanced Retrieval** | 4 | V2/V3 hybrid tool retrieval |
+| **User Servers** | 3 | Sync user's installed servers/packs |
+| **System Health** | 1 | Health check endpoint |
+| **Other** | 3 | Agent execution, observability logs |
+
+**Total: 77 Endpoints**
+
+---
+
+## 🔐 Authentication
+
+All protected endpoints require authentication using one of these methods:
+
+### Method 1: Bearer Token (Recommended)
+```bash
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  https://api.agent-corex.com/retrieve_tools?query=...
+```
+
+### Method 2: Header Key
+```bash
+curl -H "X-API-Key: YOUR_API_KEY" \
+  https://api.agent-corex.com/retrieve_tools?query=...
+```
+
+### Method 3: Query Parameter
+```bash
+curl "https://api.agent-corex.com/retrieve_tools?query=...&api_key=YOUR_API_KEY"
+```
+
+### Method 4: Admin Key (For Admin Endpoints)
+```bash
+curl -H "X-Admin-Key: ADMIN_KEY" \
+  https://api.agent-corex.com/admin/users
+```
+
+---
+
+## 🌐 Base URL
+
+```
+https://api.agent-corex.com
+```
+
+All endpoints listed below are relative to this base URL.
+
+---
+
+## 📦 Tool Discovery Endpoints (6)
+
+### 1. GET /retrieve_tools
+Semantic search over tools by natural language query.
+
+**Auth:** Optional  
+**Query Params:**
+- `query` (string, required) - Natural language search query
+- `top_k` (integer, optional, default: 5) - Number of results to return
+
+**Try It:**
+<APIPlayground 
+  method="GET" 
+  path="/retrieve_tools"
+  queryParams={{ 
+    query: "Create a GitHub pull request and deploy to AWS",
+    top_k: "5"
+  }}
+  baseUrl="https://api.agent-corex.com"
+  auth={{
+    type: "bearer",
+    name: "API Key"
+  }}
+/>
+
+**Example Response:**
+```json
+{
+  "tools": [
+    {
+      "name": "create_pull_request",
+      "server": "github-mcp",
+      "score": 0.98,
+      "description": "Create a new pull request on GitHub"
+    }
+  ],
+  "query_time_ms": 45,
+  "total_tools_searched": 156
+}
+```
+
+---
+
+### 2. GET /tools
+List all available tools with metadata.
+
+**Auth:** Optional  
+**Query Params:** None
+
+**Example Request:**
+```bash
+curl https://api.agent-corex.com/tools \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Example Response:**
+```json
+{
+  "tools": [
+    {
+      "name": "create_pull_request",
+      "server": "github-mcp",
+      "description": "Create a new pull request"
+    }
+  ],
+  "total": 156
+}
+```
+
+---
+
+### 3. GET /v2/retrieve_tools
+Advanced V2/V3 hybrid retrieval with capability filtering.
+
+**Auth:** Optional  
+**Query Params:**
+- `query` (string, required)
+- `top_k` (integer, 1-20, default: 5)
+- `use_hybrid_v3` (boolean, default: true) - Use V3 algorithm
+
+**Example Request:**
+```bash
+curl "https://api.agent-corex.com/v2/retrieve_tools?query=deploy&top_k=10&use_hybrid_v3=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Example Response:**
+```json
+{
+  "tools": [...],
+  "selected_capability": "deployment",
+  "capability_confidence": 0.95,
+  "query_rewritten": "Deploy application to cloud platform",
+  "recommended_mcps": ["aws-mcp", "terraform-mcp"],
+  "query_id": "q_abc123"
+}
+```
+
+---
+
+### 4. GET /v2/capabilities
+List all available MCP server capabilities.
+
+**Auth:** Optional  
+**Query Params:** None
+
+**Example Response:**
+```json
+{
+  "capabilities": [
+    {
+      "server_name": "github-mcp",
+      "description": "Git version control and GitHub operations"
+    },
+    {
+      "server_name": "aws-mcp",
+      "description": "AWS cloud infrastructure management"
+    }
+  ]
+}
+```
+
+---
+
+### 5. GET /capabilities
+List capabilities with tool counts.
+
+**Auth:** Optional  
+**Example Response:**
+```json
+{
+  "capabilities": [
+    {
+      "id": "git",
+      "name": "Git & Version Control",
+      "tool_count": 12
+    }
+  ]
+}
+```
+
+---
+
+### 6. GET /tools/registry
+Get all tools from the registry.
+
+**Auth:** Not required  
+**Example Response:**
+```json
+{
+  "tools": [
+    {
+      "name": "create_pr",
+      "category": "version-control",
+      "tags": ["github", "git"]
+    }
+  ]
+}
+```
+
+---
+
+## ⚙️ Tool Execution Endpoints (2)
+
+### 7. POST /execute_tool
+Execute a tool directly (admin only).
+
+**Auth:** Required (Admin)  
+**Request Body:**
+- `tool` (string, required) - Tool name
+- `arguments` (object, required) - Tool arguments
+- `mode` (string, optional) - Execution mode
+
+**Try It:**
+<APIPlayground 
+  method="POST" 
+  path="/execute_tool"
+  baseUrl="https://api.agent-corex.com"
+  requestBody={{
+    tool: "github_create_pr",
+    arguments: {
+      repo: "owner/repo",
+      title: "Fix bug",
+      from_branch: "fix/issue",
+      to_branch: "main"
+    }
+  }}
+  auth={{
+    type: "bearer",
+    name: "Admin Key"
+  }}
+/>
+
+---
+
+### 8. POST /jobs/submit
+Submit async job for tool execution.
+
+**Auth:** Required  
+**Request Body:**
+- `tool` (string) - Tool name
+- `arguments` (object) - Tool arguments
+
+**Example Response:**
+```json
+{
+  "job_id": "job_abc123",
+  "status": "queued",
+  "created_at": 1234567890
+}
+```
+
+---
+
+## 🔌 MCP Server Management (8)
+
+### 9. GET /mcp_servers
+List all MCP servers with user state.
+
+**Auth:** Required  
+**Example Response:**
+```json
+{
+  "servers": [
+    {
+      "name": "github-mcp",
+      "enabled": true,
+      "installed": true
+    }
+  ]
+}
+```
+
+---
+
+### 10. POST /mcp_servers/toggle
+Toggle MCP server state.
+
+**Auth:** Required  
+**Request Body:**
+- `server` (string) - Server name
+- `enabled` (boolean) - Enable/disable
+
+---
+
+### 11. GET /mcp_registry
+List all MCP servers from registry.
+
+**Auth:** Not required  
+
+---
+
+### 12. GET /mcp_registry/{name}
+Get specific MCP server.
+
+**Auth:** Not required  
+
+---
+
+### 13-16. Admin MCP Registry Endpoints
+Create, update, delete, and sync MCP registry entries.
+
+**Auth:** Required (Admin)  
+- POST /admin/mcp_registry
+- PATCH /admin/mcp_registry/{name}
+- DELETE /admin/mcp_registry/{name}
+- POST /admin/mcp_registry/sync-to-supabase
+
+---
+
+## 📦 Capabilities & Packs (15)
+
+### 17. GET /packs
+List all capability packs.
+
+**Auth:** Optional  
+
+---
+
+### 18. GET /packs/{pack_id}
+Get specific pack.
+
+**Auth:** Optional  
+
+---
+
+### 19. GET /packs/{pack_id}/servers
+Get servers in a pack.
+
+**Auth:** Optional  
+
+---
+
+### 20. POST /packs/enable
+Enable all capabilities in a pack.
+
+**Auth:** Required  
+**Request Body:**
+- `pack_id` (string) - Pack to enable
+
+---
+
+### 21-31. Custom Packs Endpoints (11)
+Manage custom packs and servers.
+
+**Auth:** Required  
+- POST /custom-packs/mcp-servers - Create custom server
+- GET /custom-packs/mcp-servers - List custom servers
+- POST /custom-packs/packs - Create custom pack
+- GET /custom-packs/packs - List custom packs
+- GET /custom-packs/packs/{pack_id} - Get pack
+- PATCH /custom-packs/packs/{pack_id} - Update pack
+- DELETE /custom-packs/packs/{pack_id} - Delete pack
+- PUT /custom-packs/packs/{pack_id}/servers - Replace servers
+- POST /custom-packs/packs/{pack_id}/servers - Add server
+- DELETE /custom-packs/packs/{pack_id}/servers/{server_name} - Remove server
+- GET /custom-packs/packs/{pack_id}/install - Get install command
+
+---
+
+## 🔐 Authentication Endpoints (4)
+
+### 32. GET /health
+System health check.
+
+**Auth:** Not required  
+**Example Response:**
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
+### 33. POST /auth/login
+Authenticate with API key.
+
+**Auth:** Required  
+
+---
+
+### 34. POST /auth/cli/start
+Start CLI authentication (device code flow).
+
+**Auth:** Not required  
+**Example Response:**
+```json
+{
+  "device_code": "ABC123",
+  "verification_url": "https://agent-corex.com/auth/cli?code=ABC123",
+  "expires_in": 1800
+}
+```
+
+---
+
+### 35. POST /auth/cli/poll
+Poll CLI session status.
+
+**Auth:** Not required  
+**Request Body:**
+- `device_code` (string) - Device code from /auth/cli/start
+
+---
+
+### 36. POST /auth/cli/complete
+Complete CLI authentication.
+
+**Auth:** Required (Supabase token in body)  
+
+---
+
+## 📊 Usage & Analytics (8)
+
+### 37. POST /usage/event
+Record usage event.
+
+**Auth:** Optional (Bearer token or API key)  
+**Request Body:** Custom usage event structure
+
+---
+
+### 38. POST /query/log
+Log query event.
+
+**Auth:** Optional  
+**Request Body:** Query details
+
+---
+
+### 39. GET /queries
+Get user's query history.
+
+**Auth:** Required  
+**Query Params:**
+- `limit` (integer, default: 50)
+
+---
+
+### 40. POST /tools/selection-log
+Log tool selection/rejection.
+
+**Auth:** Optional  
+
+---
+
+### 41. POST /observability/tool-logs
+Ingest batch of tool logs.
+
+**Auth:** Optional  
+
+---
+
+### 42. GET /observability/tool-insights
+Get tool usage insights.
+
+**Auth:** Optional  
+
+---
+
+### 43-45. MCP Analytics (3)
+Track and view analytics.
+
+**Auth Requirements Vary**
+- POST /mcp-analytics/analytics/track - Public
+- GET /mcp-analytics/servers/{server_name}/analytics - Admin
+- GET /mcp-analytics/analytics/dashboard - Admin
+- GET /mcp-analytics/analytics/search-trends - Admin
+
+---
+
+## 🚫 Moderation & Flagging (10)
+
+### 46. POST /mcp-moderation/servers/{server_name}/flags
+Flag server for review.
+
+**Auth:** Required (User ID)  
+
+---
+
+### 47. GET /mcp-moderation/servers/{server_name}/flags
+Get server flags.
+
+**Auth:** Not required  
+
+---
+
+### 48. PATCH /mcp-moderation/flags/{flag_id}
+Resolve flag (admin).
+
+**Auth:** Required (Admin)  
+
+---
+
+### 49. GET /mcp-moderation/servers/{server_name}/verification
+Get server verification status.
+
+**Auth:** Not required  
+
+---
+
+### 50. PATCH /mcp-moderation/servers/{server_name}/verification
+Update verification (admin).
+
+**Auth:** Required (Admin)  
+
+---
+
+### 51. POST /mcp-moderation/servers/{server_name}/reviews
+Create server review.
+
+**Auth:** Required (User ID)  
+
+---
+
+### 52. GET /mcp-moderation/servers/{server_name}/reviews
+Get server reviews.
+
+**Auth:** Not required  
+**Query Params:**
+- `sort_by` - "recent", "rating"
+- `limit` - Number of reviews
+
+---
+
+### 53. GET /mcp-moderation/servers/featured
+Get featured servers.
+
+**Auth:** Not required  
+
+---
+
+### 54. GET /mcp-moderation/moderation/dashboard
+View moderation dashboard (admin).
+
+**Auth:** Required (Admin)  
+
+---
+
+## 💳 Billing & Plans (5)
+
+### 55. GET /billing/plans
+Get available plans.
+
+**Auth:** Not required  
+**Example Response:**
+```json
+{
+  "plans": [
+    {
+      "id": "free",
+      "name": "Free",
+      "price": 0,
+      "limits": {
+        "max_packs": 1,
+        "max_servers_per_pack": 5
+      }
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "price": 99,
+      "limits": {
+        "max_packs": 10,
+        "max_servers_per_pack": 50
+      }
+    }
+  ]
+}
+```
+
+---
+
+### 56. GET /billing/user-limits
+Get current user's plan limits.
+
+**Auth:** Required  
+**Example Response:**
+```json
+{
+  "plan": "pro",
+  "max_packs": 10,
+  "max_servers_per_pack": 50
+}
+```
+
+---
+
+### 57. POST /billing/create-order
+Create payment order (Razorpay).
+
+**Auth:** Required  
+**Request Body:**
+- `plan_id` (string)
+
+**Example Response:**
+```json
+{
+  "order_id": "order_abc123",
+  "amount": 9900,
+  "currency": "INR",
+  "key_id": "razorpay_key"
+}
+```
+
+---
+
+### 58. POST /billing/verify-payment
+Verify payment and update plan.
+
+**Auth:** Required  
+**Request Body:**
+- `plan_id` (string)
+- `razorpay_order_id` (string)
+- `razorpay_payment_id` (string)
+- `razorpay_signature` (string)
+
+---
+
+### 59. POST /billing/webhook
+Razorpay webhook handler.
+
+**Auth:** Webhook signature verification  
+
+---
+
+## 👥 Admin Management (4)
+
+### 60. GET /admin/users
+List all users.
+
+**Auth:** Required (Admin)  
+
+---
+
+### 61. GET /admin/users/{user_id}
+Get user details.
+
+**Auth:** Required (Admin)  
+
+---
+
+### 62. PATCH /admin/users/{user_id}/role
+Update user role.
+
+**Auth:** Required (Admin)  
+**Request Body:**
+- `role` (string) - "admin" or "user"
+
+---
+
+### 63. DELETE /admin/users/{user_id}
+Delete user.
+
+**Auth:** Required (Admin)  
+
+---
+
+## 🔧 Integrations (4)
+
+### 64. GET /free-tools/status
+Free tools service status.
+
+**Auth:** Not required  
+
+---
+
+### 65. POST /free-tools/run
+Execute free tool.
+
+**Auth:** Optional  
+**Request Body:**
+- `tool_slug` (string) - Tool slug
+- `input` (object) - Tool input
+- `user_identifier` (string, optional)
+
+---
+
+### 66. POST /free-tools/install
+Install free tool.
+
+**Auth:** Not required  
+
+---
+
+### 67. GET /recommender/examples
+Get recommendation examples.
+
+**Auth:** Not required  
+
+---
+
+### 68. POST /recommender/status
+Recommender service status.
+
+**Auth:** Not required  
+
+---
+
+### 69. POST /recommender
+Get AI-powered tool recommendation.
+
+**Auth:** Optional  
+**Request Body:**
+- `query` (string) - User query
+
+**Example Response:**
+```json
+{
+  "status": "success",
+  "servers": ["github-mcp", "aws-mcp"],
+  "tools": ["create_pr", "deploy"],
+  "steps": ["Clone repo", "Make changes", "Create PR"],
+  "cta": ["Install servers", "Run tools"]
+}
+```
+
+---
+
+### 70. GET /settings/embedding
+Get embedding settings.
+
+**Auth:** Required  
+
+---
+
+### 71. POST /settings/embedding
+Save embedding settings.
+
+**Auth:** Required  
+**Request Body:**
+- `provider` (string) - "openai" or other
+- `openai_model` (string) - Model name
+
+---
+
+## 🎯 User Servers (3)
+
+### 72. GET /user-servers/servers
+Get user's enabled servers.
+
+**Auth:** Required  
+**Example Response:**
+```json
+{
+  "enabled_packs": ["pack1", "pack2"],
+  "enabled_servers": ["github-mcp", "aws-mcp"]
+}
+```
+
+---
+
+### 73. POST /user-servers/servers
+Sync user servers to backend.
+
+**Auth:** Required  
+**Request Body:**
+- `installed_servers` (array)
+- `installed_packs` (array)
+
+---
+
+### 74. POST /user-servers/sync-trigger
+Trigger server sync.
+
+**Auth:** Required  
+
+---
+
+## 📈 Advanced Retrieval (4)
+
+### 75. POST /v2/index_tools
+Enrich and index tools.
+
+**Auth:** Required  
+**Request Body:**
+- `tools` (array) - Tools to index
+- `skip_existing` (boolean, optional)
+
+---
+
+### 76. POST /v2/track_installation
+Track tool installation.
+
+**Auth:** Required  
+**Request Body:**
+- `tool_name` (string)
+- `server` (string)
+- `pack_id` (string, optional)
+
+---
+
+## 🤖 Agent Execution (1)
+
+### 77. POST /agent/execute
+Execute Vibe Coding task.
+
+**Auth:** Optional  
+**Request Body:**
+- `query` (string)
+
+---
+
+## 📋 Quick Reference Table
+
+| # | Method | Path | Auth | Description |
+|---|--------|------|------|-------------|
+| 1 | GET | /retrieve_tools | Opt | Semantic tool search |
+| 2 | GET | /tools | Opt | List all tools |
+| 3 | GET | /v2/retrieve_tools | Opt | Advanced retrieval |
+| 4 | GET | /v2/capabilities | Opt | List capabilities |
+| 5 | GET | /capabilities | Opt | Capabilities with counts |
+| 6 | GET | /tools/registry | No | Tool registry |
+| 7 | POST | /execute_tool | Yes | Execute tool (admin) |
+| 8 | POST | /jobs/submit | Yes | Submit async job |
+| 9 | GET | /jobs/{job_id} | Yes | Get job status |
+| 10 | DELETE | /jobs/{job_id} | Yes | Cancel job |
+| 11 | GET | /jobs | Yes | List user jobs |
+| 12 | GET | /mcp_servers | Yes | List MCP servers |
+| 13 | POST | /mcp_servers/toggle | Yes | Toggle server |
+| 14 | GET | /tools/installed | Yes | List installed tools |
+| 15 | GET | /mcp_registry | No | Get registry |
+| 16 | GET | /mcp_registry/{name} | No | Get registry entry |
+| 17 | POST | /admin/mcp_registry | Yes | Create registry entry |
+| 18 | PATCH | /admin/mcp_registry/{name} | Yes | Update registry entry |
+| 19 | DELETE | /admin/mcp_registry/{name} | Yes | Delete registry entry |
+| 20 | POST | /admin/mcp_registry/sync-to-supabase | Yes | Sync to Supabase |
+| 21 | GET | /health | No | Health check |
+| 22 | POST | /auth/login | Yes | Login |
+| 23 | POST | /auth/cli/start | No | Start CLI auth |
+| 24 | POST | /auth/cli/poll | No | Poll CLI status |
+| 25 | POST | /auth/cli/complete | Yes | Complete CLI auth |
+| 26 | GET | /packs | Opt | List packs |
+| 27 | GET | /packs/{pack_id} | Opt | Get pack |
+| 28 | GET | /packs/{pack_id}/servers | Opt | Get pack servers |
+| 29 | POST | /packs/enable | Yes | Enable pack |
+| 30 | POST | /custom-packs/mcp-servers | Yes | Create custom server |
+| 31 | GET | /custom-packs/mcp-servers | Yes | List custom servers |
+| 32 | POST | /custom-packs/packs | Yes | Create custom pack |
+| 33 | GET | /custom-packs/packs | Yes | List custom packs |
+| 34 | GET | /custom-packs/packs/{pack_id} | Yes | Get custom pack |
+| 35 | PATCH | /custom-packs/packs/{pack_id} | Yes | Update custom pack |
+| 36 | DELETE | /custom-packs/packs/{pack_id} | Yes | Delete custom pack |
+| 37 | PUT | /custom-packs/packs/{pack_id}/servers | Yes | Replace pack servers |
+| 38 | POST | /custom-packs/packs/{pack_id}/servers | Yes | Add server to pack |
+| 39 | DELETE | /custom-packs/packs/{pack_id}/servers/{name} | Yes | Remove server from pack |
+| 40 | GET | /custom-packs/packs/{pack_id}/install | Yes | Get install command |
+| 41 | POST | /usage/event | Opt | Record usage |
+| 42 | POST | /query/log | Opt | Log query |
+| 43 | GET | /queries | Yes | Get query history |
+| 44 | POST | /tools/selection-log | Opt | Log selection |
+| 45 | POST | /mcp-analytics/analytics/track | No | Track analytics |
+| 46 | GET | /mcp-analytics/servers/{name}/analytics | Yes | Get analytics |
+| 47 | GET | /mcp-analytics/analytics/dashboard | Yes | Analytics dashboard |
+| 48 | GET | /mcp-analytics/analytics/search-trends | Yes | Search trends |
+| 49 | POST | /mcp-moderation/servers/{name}/flags | Yes | Flag server |
+| 50 | GET | /mcp-moderation/servers/{name}/flags | No | Get flags |
+| 51 | PATCH | /mcp-moderation/flags/{id} | Yes | Resolve flag |
+| 52 | GET | /mcp-moderation/servers/{name}/verification | No | Get verification |
+| 53 | PATCH | /mcp-moderation/servers/{name}/verification | Yes | Update verification |
+| 54 | POST | /mcp-moderation/servers/{name}/reviews | Yes | Create review |
+| 55 | GET | /mcp-moderation/servers/{name}/reviews | No | Get reviews |
+| 56 | GET | /mcp-moderation/servers/featured | No | Featured servers |
+| 57 | GET | /mcp-moderation/moderation/dashboard | Yes | Moderation dashboard |
+| 58 | GET | /billing/plans | No | Get plans |
+| 59 | GET | /billing/user-limits | Yes | Get user limits |
+| 60 | POST | /billing/create-order | Yes | Create order |
+| 61 | POST | /billing/verify-payment | Yes | Verify payment |
+| 62 | POST | /billing/webhook | Special | Razorpay webhook |
+| 63 | GET | /admin/users | Yes | List users |
+| 64 | GET | /admin/users/{id} | Yes | Get user |
+| 65 | PATCH | /admin/users/{id}/role | Yes | Update role |
+| 66 | DELETE | /admin/users/{id} | Yes | Delete user |
+| 67 | GET | /free-tools/status | No | Tool status |
+| 68 | POST | /free-tools/run | Opt | Run tool |
+| 69 | POST | /free-tools/install | No | Install tool |
+| 70 | GET | /recommender/examples | No | Get examples |
+| 71 | POST | /recommender/status | No | Status |
+| 72 | POST | /recommender | Opt | Get recommendation |
+| 73 | GET | /settings/embedding | Yes | Get settings |
+| 74 | POST | /settings/embedding | Yes | Save settings |
+| 75 | POST | /observability/tool-logs | Opt | Ingest logs |
+| 76 | GET | /observability/tool-insights | Opt | Get insights |
+| 77 | GET | /user-servers/servers | Yes | Get servers |
+| 78 | POST | /user-servers/servers | Yes | Sync servers |
+| 79 | POST | /user-servers/sync-trigger | Yes | Trigger sync |
+| 80 | POST | /v2/index_tools | Yes | Index tools |
+| 81 | POST | /v2/track_installation | Yes | Track install |
+| 82 | POST | /agent/execute | Opt | Execute agent |
+
+---
+
+## ✨ Features by Endpoint Type
+
+### 🟢 Public (No Auth Required)
+- GET /health
+- GET /tools/registry
+- GET /mcp_registry
+- GET /mcp_registry/{name}
+- POST /auth/cli/start
+- POST /auth/cli/poll
+- GET /mcp-moderation/servers/{name}/flags
+- GET /mcp-moderation/servers/{name}/verification
+- GET /mcp-moderation/servers/{name}/reviews
+- GET /mcp-moderation/servers/featured
+- GET /billing/plans
+- GET /free-tools/status
+- POST /free-tools/install
+- GET /recommender/examples
+- POST /recommender/status
+- POST /mcp-analytics/analytics/track
+
+### 🟡 Optional Auth
+- GET /retrieve_tools
+- GET /tools
+- GET /v2/retrieve_tools
+- GET /v2/capabilities
+- GET /capabilities
+- GET /packs
+- GET /packs/{pack_id}
+- GET /packs/{pack_id}/servers
+- POST /usage/event
+- POST /query/log
+- POST /tools/selection-log
+- POST /observability/tool-logs
+- GET /observability/tool-insights
+- POST /free-tools/run
+- POST /recommender
+- POST /agent/execute
+
+### 🔴 Required Auth
+- POST /auth/login
+- POST /auth/cli/complete
+- POST /jobs/submit
+- GET /jobs/{job_id}
+- DELETE /jobs/{job_id}
+- GET /jobs
+- GET /mcp_servers
+- POST /mcp_servers/toggle
+- GET /tools/installed
+- All /custom-packs/* endpoints
+- GET /queries
+- POST /packs/enable
+- All /admin/* endpoints
+- All /billing/* endpoints (except GET /billing/plans)
+- All authenticated /mcp-analytics/* endpoints
+- All authenticated /mcp-moderation/* endpoints
+- All /user-servers/* endpoints
+- All /v2/* authenticated endpoints
+- GET /settings/embedding
+- POST /settings/embedding
+
+### 🔐 Admin Only
+- POST /execute_tool
+- POST /admin/mcp_registry
+- PATCH /admin/mcp_registry/{name}
+- DELETE /admin/mcp_registry/{name}
+- POST /admin/mcp_registry/sync-to-supabase
+- GET /mcp-analytics/servers/{name}/analytics
+- GET /mcp-analytics/analytics/dashboard
+- GET /mcp-analytics/analytics/search-trends
+- PATCH /mcp-moderation/flags/{id}
+- PATCH /mcp-moderation/servers/{name}/verification
+- GET /mcp-moderation/moderation/dashboard
+- GET /admin/users
+- GET /admin/users/{id}
+- PATCH /admin/users/{id}/role
+- DELETE /admin/users/{id}
+
+---
+
+## 🧪 Testing Endpoints
+
+Use the interactive playgrounds above to test each endpoint directly. All examples use real request/response structures derived from the codebase.
+
+---
+
+## 📚 See Also
+
+- [Detailed Endpoint Guide](/api-reference/endpoints)
+- [Code Examples](/examples/sample-queries)
+- [Authentication Guide](/guides/authentication)
+- [Error Handling](/api-reference/errors)
+

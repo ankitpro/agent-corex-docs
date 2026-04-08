@@ -1,0 +1,379 @@
+---
+title: 'Endpoints Quick Reference'
+description: 'Complete list of all 77 API endpoints at a glance'
+---
+
+# API Endpoints Quick Reference
+
+All 77 endpoints organized for quick lookup.
+
+---
+
+## Search by Feature
+
+- **[Tool Discovery](#tool-discovery--retrieval)** - Search and retrieve tools
+- **[Execution & Jobs](#execution--jobs)** - Execute tools, manage async jobs
+- **[MCP Servers](#mcp-servers)** - Install and manage servers
+- **[Capabilities & Packs](#capabilities--packs)** - Enable features, manage packs
+- **[Authentication](#authentication)** - API keys and CLI auth
+- **[User Management](#user-management)** - List and manage users
+- **[Billing](#billing)** - Plans and payment
+- **[Analytics](#analytics)** - Track usage and insights
+- **[Admin Tools](#admin-tools)** - Administration endpoints
+- **[Integrations](#integrations)** - Embeddings, free tools, recommender
+
+---
+
+## Tool Discovery & Retrieval
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/retrieve_tools` | GET | Opt | Semantic tool search |
+| `/v2/retrieve_tools` | GET | Opt | Advanced hybrid retrieval |
+| `/tools` | GET | Opt | List all tools |
+| `/tools/registry` | GET | No | Browse tool registry |
+| `/tools/registry/{tool_name}` | GET | No | Get tool details |
+| `/v2/capabilities` | GET | Opt | List MCP capabilities |
+| `/capabilities` | GET | Opt | Capabilities with counts |
+| `/tools/categories` | GET | No | List tool categories |
+| `/tools/capabilities` | GET | No | List all capabilities |
+
+**Use Cases:**
+- Search for tools: `/retrieve_tools?query=deploy+AWS`
+- Get all tools: `/tools`
+- Browse registry: `/tools/registry`
+
+---
+
+## Execution & Jobs
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/execute_tool` | POST | Yes* | Execute tool directly (admin) |
+| `/jobs/submit` | POST | Yes | Submit async job |
+| `/jobs/{job_id}` | GET | Yes | Get job status |
+| `/jobs/{job_id}` | DELETE | Yes | Cancel job |
+| `/jobs` | GET | Yes | List user jobs |
+| `/agent/execute` | POST | Opt | Execute Vibe Coding task |
+
+*Admin only
+
+**Use Cases:**
+- Execute tool: `POST /execute_tool`
+- Submit async: `POST /jobs/submit`
+- Check status: `GET /jobs/{job_id}`
+
+---
+
+## MCP Servers
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/mcp_servers` | GET | Yes | List user's MCP servers |
+| `/mcp_servers/toggle` | POST | Yes | Enable/disable server |
+| `/tools/installed` | GET | Yes | List installed tools |
+| `/mcp_registry` | GET | No | List all servers |
+| `/mcp_registry/{name}` | GET | No | Get server details |
+| `/admin/mcp_registry` | POST | Yes* | Create server (admin) |
+| `/admin/mcp_registry/{name}` | PATCH | Yes* | Update server (admin) |
+| `/admin/mcp_registry/{name}` | DELETE | Yes* | Delete server (admin) |
+| `/admin/mcp_registry/sync-to-supabase` | POST | Yes* | Sync registry (admin) |
+
+*Admin only
+
+---
+
+## Capabilities & Packs
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/packs` | GET | Opt | List all packs |
+| `/packs/{pack_id}` | GET | Opt | Get pack details |
+| `/packs/{pack_id}/servers` | GET | Opt | Get pack servers |
+| `/packs/enable` | POST | Yes | Enable capability pack |
+| `/capabilities/enable` | POST | Yes | Enable single capability |
+| `/custom-packs/mcp-servers` | POST | Yes | Create custom server |
+| `/custom-packs/mcp-servers` | GET | Yes | List custom servers |
+| `/custom-packs/packs` | POST | Yes | Create custom pack |
+| `/custom-packs/packs` | GET | Yes | List custom packs |
+| `/custom-packs/packs/{pack_id}` | GET | Yes | Get custom pack |
+| `/custom-packs/packs/{pack_id}` | PATCH | Yes | Update custom pack |
+| `/custom-packs/packs/{pack_id}` | DELETE | Yes | Delete custom pack |
+| `/custom-packs/packs/{pack_id}/servers` | PUT | Yes | Replace pack servers |
+| `/custom-packs/packs/{pack_id}/servers` | POST | Yes | Add server to pack |
+| `/custom-packs/packs/{pack_id}/servers/{server_name}` | DELETE | Yes | Remove server from pack |
+| `/custom-packs/packs/{pack_id}/install` | GET | Yes | Get install command |
+
+---
+
+## Authentication
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/health` | GET | No | Health check |
+| `/auth/login` | POST | Yes | API key login |
+| `/auth/cli/start` | POST | No | Start CLI device flow |
+| `/auth/cli/poll` | POST | No | Poll CLI status |
+| `/auth/cli/complete` | POST | Yes | Complete CLI auth |
+
+---
+
+## User Management
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/admin/users` | GET | Yes* | List all users |
+| `/admin/users/{user_id}` | GET | Yes* | Get user details |
+| `/admin/users/{user_id}/role` | PATCH | Yes* | Update user role |
+| `/admin/users/{user_id}` | DELETE | Yes* | Delete user |
+| `/user-servers/servers` | GET | Yes | Get user's servers |
+| `/user-servers/servers` | POST | Yes | Sync user servers |
+| `/user-servers/sync-trigger` | POST | Yes | Trigger sync |
+
+*Admin only
+
+---
+
+## Billing
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/billing/plans` | GET | No | Get available plans |
+| `/billing/user-limits` | GET | Yes | Get user's plan limits |
+| `/billing/create-order` | POST | Yes | Create Razorpay order |
+| `/billing/verify-payment` | POST | Yes | Verify payment signature |
+| `/billing/webhook` | POST | Special | Razorpay webhook |
+
+---
+
+## Analytics & Logging
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/usage/event` | POST | Opt | Record usage event |
+| `/query/log` | POST | Opt | Log query |
+| `/queries` | GET | Yes | Get query history |
+| `/tools/selection-log` | POST | Opt | Log tool selection |
+| `/observability/tool-logs` | POST | Opt | Ingest batch logs |
+| `/observability/tool-insights` | GET | Opt | Get tool insights |
+| `/mcp-analytics/analytics/track` | POST | No | Track analytics |
+| `/mcp-analytics/servers/{server_name}/analytics` | GET | Yes* | Server analytics |
+| `/mcp-analytics/analytics/dashboard` | GET | Yes* | Dashboard |
+| `/mcp-analytics/analytics/search-trends` | GET | Yes* | Search trends |
+
+*Admin only
+
+---
+
+## Moderation & Community
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/mcp-moderation/servers/{server_name}/flags` | POST | Yes | Flag server |
+| `/mcp-moderation/servers/{server_name}/flags` | GET | No | Get flags |
+| `/mcp-moderation/flags/{flag_id}` | PATCH | Yes* | Resolve flag |
+| `/mcp-moderation/servers/{server_name}/verification` | GET | No | Get verification |
+| `/mcp-moderation/servers/{server_name}/verification` | PATCH | Yes* | Update verification |
+| `/mcp-moderation/servers/{server_name}/reviews` | POST | Yes | Create review |
+| `/mcp-moderation/servers/{server_name}/reviews` | GET | No | Get reviews |
+| `/mcp-moderation/servers/featured` | GET | No | Featured servers |
+| `/mcp-moderation/moderation/dashboard` | GET | Yes* | Moderation dashboard |
+
+*Admin only
+
+---
+
+## Integrations
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/free-tools/status` | GET | No | Free tools status |
+| `/free-tools/run` | POST | Opt | Run free tool |
+| `/free-tools/install` | POST | No | Install free tool |
+| `/recommender/examples` | GET | No | Get examples |
+| `/recommender/status` | POST | No | Recommender status |
+| `/recommender` | POST | Opt | Get recommendation |
+| `/settings/embedding` | GET | Yes | Get embedding settings |
+| `/settings/embedding` | POST | Yes | Save embedding settings |
+
+---
+
+## Advanced Retrieval
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/v2/index_tools` | POST | Yes | Index/enrich tools |
+| `/v2/track_installation` | POST | Yes | Track tool install |
+
+---
+
+## Admin Tools
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/admin/mcp_registry/*` | * | Yes* | Registry management |
+| `/admin/users/*` | * | Yes* | User management |
+| `/mcp-analytics/*` | * | Yes* | Analytics (admin) |
+| `/mcp-moderation/*` | * | Yes* | Moderation (admin) |
+
+*Admin only
+
+---
+
+## Authentication Patterns
+
+### Public Endpoints
+No authentication required:
+```
+GET /health
+GET /tools/registry
+GET /mcp_registry
+POST /auth/cli/start
+POST /recommender/status
+```
+
+### Optional Authentication
+Preferred, but not required:
+```
+GET /retrieve_tools
+GET /tools
+POST /usage/event
+POST /recommender
+```
+
+### Required Authentication
+Must include API key:
+```
+POST /jobs/submit
+GET /jobs/{job_id}
+GET /mcp_servers
+All /custom-packs/* endpoints
+```
+
+### Admin Only
+Must include admin key:
+```
+POST /execute_tool
+POST /admin/mcp_registry
+POST /admin/mcp_registry/sync-to-supabase
+All /admin/users/* endpoints
+```
+
+---
+
+## HTTP Methods
+
+### GET Endpoints (35)
+Retrieve data without side effects:
+- Tool discovery: `/retrieve_tools`, `/tools`, `/tools/registry`
+- Server management: `/mcp_servers`, `/mcp_registry`
+- Status: `/health`, `/queries`, `/jobs`
+- Admin: `/admin/users`, `/mcp-analytics/*`
+
+### POST Endpoints (32)
+Create or execute resources:
+- Execution: `/execute_tool`, `/jobs/submit`, `/agent/execute`
+- Management: `/packs/enable`, `/custom-packs/packs`
+- Auth: `/auth/cli/start`, `/auth/cli/complete`
+- Events: `/usage/event`, `/query/log`
+- Billing: `/billing/create-order`
+
+### PATCH Endpoints (5)
+Partial updates:
+- Packs: `/custom-packs/packs/{pack_id}`
+- Admin: `/admin/users/{user_id}/role`
+- Moderation: `/mcp-moderation/flags/{flag_id}`
+- Registry: `/admin/mcp_registry/{name}`
+
+### DELETE Endpoints (5)
+Remove resources:
+- Jobs: `/jobs/{job_id}`
+- Packs: `/custom-packs/packs/{pack_id}`
+- Registry: `/admin/mcp_registry/{name}`
+- Servers: `/custom-packs/packs/{pack_id}/servers/{name}`
+- Users: `/admin/users/{user_id}`
+
+### PUT Endpoints (1)
+Replace resource:
+- Servers: `/custom-packs/packs/{pack_id}/servers`
+
+---
+
+## Common Query Parameters
+
+| Parameter | Used By | Type | Default |
+|-----------|---------|------|---------|
+| `query` | `/retrieve_tools`, `/v2/retrieve_tools` | string | - |
+| `top_k` | `/retrieve_tools`, `/v2/retrieve_tools` | integer | 5 |
+| `limit` | List endpoints | integer | 20 |
+| `offset` | List endpoints | integer | 0 |
+| `status` | `/jobs` | string | all |
+| `sort_by` | Review endpoints | string | recent |
+
+---
+
+## Common Request Headers
+
+```bash
+# Authentication
+Authorization: Bearer YOUR_API_KEY
+X-API-Key: YOUR_API_KEY
+
+# Admin
+X-Admin-Key: ADMIN_KEY
+
+# Content
+Content-Type: application/json
+
+# Optional
+User-Agent: curl/7.64.0
+```
+
+---
+
+## Common Response Headers
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1642262400
+X-Request-Id: req_123abc456
+```
+
+---
+
+## Status Codes
+
+| Code | Meaning |
+|------|---------|
+| 200 | Success |
+| 201 | Created |
+| 204 | No content |
+| 400 | Bad request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not found |
+| 429 | Rate limited |
+| 500 | Server error |
+| 504 | Gateway timeout |
+
+---
+
+## Endpoint Statistics
+
+- **Total Endpoints:** 77
+- **Public (no auth):** ~15
+- **Optional Auth:** ~15
+- **Required Auth:** ~45
+- **Admin Only:** ~12
+
+---
+
+## See Also
+
+- [Complete API Reference](/api-reference/complete-api-reference)
+- [Tool Discovery](/api-reference/tool-discovery)
+- [Tool Execution](/api-reference/tool-execution)
+- [MCP Servers](/api-reference/mcp-servers)
+- [Error Handling](/api-reference/errors)
+

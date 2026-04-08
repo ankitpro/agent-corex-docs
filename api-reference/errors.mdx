@@ -1,0 +1,600 @@
+---
+title: 'Error Handling'
+description: 'Understand and handle API errors effectively'
+---
+
+# Error Handling
+
+Comprehensive guide to API errors and recovery strategies.
+
+---
+
+## Response Format
+
+All error responses follow a standard format:
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "details": {
+      "field": "Additional context"
+    }
+  },
+  "request_id": "req_abc123"
+}
+```
+
+---
+
+## HTTP Status Codes
+
+### 4xx Client Errors
+
+#### 400 Bad Request
+Invalid request format or parameters.
+
+**When:** Missing required fields, invalid data types, malformed JSON
+
+```json
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field: query",
+    "details": {
+      "missing_fields": ["query"]
+    }
+  }
+}
+```
+
+**Solution:**
+```bash
+# ❌ Bad
+curl "https://api.agent-corex.com/retrieve_tools"
+
+# ✅ Good
+curl "https://api.agent-corex.com/retrieve_tools?query=deploy"
+```
+
+---
+
+#### 401 Unauthorized
+Invalid or missing API key.
+
+**When:** No auth header, invalid key format, expired token
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid API key"
+  }
+}
+```
+
+**Solution:**
+```bash
+# ✅ Correct auth
+curl "https://api.agent-corex.com/jobs" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Or
+curl "https://api.agent-corex.com/jobs?api_key=YOUR_API_KEY"
+```
+
+---
+
+#### 403 Forbidden
+Valid auth but insufficient permissions.
+
+**When:** Non-admin accessing admin endpoint, user accessing another user's job
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "This action requires admin privileges",
+    "details": {
+      "required_role": "admin",
+      "current_role": "user"
+    }
+  }
+}
+```
+
+**Solution:**
+```javascript
+// Check user role before admin operations
+if (user.role !== 'admin') {
+  console.error('Admin access required');
+  return;
+}
+```
+
+---
+
+#### 404 Not Found
+Resource doesn't exist.
+
+**When:** Tool not found, job doesn't exist, server not registered
+
+```json
+{
+  "error": {
+    "code": "TOOL_NOT_FOUND",
+    "message": "Tool 'deploy_to_aws' not found",
+    "details": {
+      "tool": "deploy_to_aws",
+      "available_tools": ["create_pr", "deploy_to_gcp"]
+    }
+  }
+}
+```
+
+**Solution:**
+```javascript
+async function safeGetTool(toolName) {
+  try {
+    return await getTool(toolName);
+  } catch (error) {
+    if (error.code === 'TOOL_NOT_FOUND') {
+      // List available tools
+      const tools = await listTools();
+      console.log('Available:', tools.map(t => t.name));
+    }
+    throw error;
+  }
+}
+```
+
+---
+
+#### 429 Too Many Requests
+Rate limit exceeded.
+
+**When:** Too many requests in short time period
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Rate limit exceeded",
+    "details": {
+      "limit": 100,
+      "window_seconds": 60,
+      "retry_after": 45
+    }
+  }
+}
+```
+
+**Headers:**
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1642262445
+Retry-After: 45
+```
+
+**Solution:**
+```javascript
+// Exponential backoff
+async function withRetry(fn, maxRetries = 3) {
+  let delay = 1000;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error.code !== 'RATE_LIMITED') throw error;
+      
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+// Usage
+const tools = await withRetry(() => 
+  retrieveTools({ query: 'deploy' })
+);
+```
+
+---
+
+### 5xx Server Errors
+
+#### 500 Internal Server Error
+Unexpected server error.
+
+**When:** Bug in API, database error, service failure
+
+```json
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "An unexpected error occurred",
+    "request_id": "req_abc123"
+  }
+}
+```
+
+**Solution:**
+```javascript
+// Use request_id for support
+console.error('API Error:', error.request_id);
+console.log('Report to support with request ID above');
+
+// Auto-retry with exponential backoff
+async function safeFetch(url, options = {}, maxRetries = 3) {
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries - 1) {
+        await sleep(Math.pow(2, attempt) * 1000);
+      }
+    }
+  }
+  
+  throw lastError;
+}
+```
+
+---
+
+#### 504 Gateway Timeout
+Tool execution exceeded timeout.
+
+**When:** Tool takes too long to respond
+
+```json
+{
+  "error": {
+    "code": "EXECUTION_TIMEOUT",
+    "message": "Tool execution exceeded 60000ms timeout",
+    "details": {
+      "tool": "deploy_to_aws",
+      "timeout_ms": 60000
+    }
+  }
+}
+```
+
+**Solution:**
+```javascript
+// Use jobs API for long operations
+const job = await submitJob({
+  tool: 'deploy_to_aws',
+  arguments: { /* ... */ }
+});
+
+// Poll status
+const result = await pollJob(job.job_id);
+```
+
+---
+
+## Error Codes Reference
+
+### Authentication Errors
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `UNAUTHORIZED` | 401 | Missing/invalid API key |
+| `FORBIDDEN` | 403 | Insufficient permissions |
+| `INVALID_TOKEN` | 401 | Token expired/revoked |
+
+### Request Errors
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `INVALID_REQUEST` | 400 | Malformed request |
+| `INVALID_ARGUMENTS` | 400 | Bad parameters |
+| `MISSING_REQUIRED_FIELD` | 400 | Missing required param |
+| `INVALID_JSON` | 400 | JSON parse error |
+
+### Resource Errors
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `TOOL_NOT_FOUND` | 404 | Tool doesn't exist |
+| `JOB_NOT_FOUND` | 404 | Job doesn't exist |
+| `SERVER_NOT_FOUND` | 404 | Server not found |
+| `PACK_NOT_FOUND` | 404 | Pack not found |
+
+### Execution Errors
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `EXECUTION_ERROR` | 500 | Tool failed |
+| `EXECUTION_TIMEOUT` | 504 | Tool took too long |
+| `INVALID_ARGUMENTS` | 400 | Tool params invalid |
+| `TOOL_NOT_INSTALLED` | 400 | Server not enabled |
+
+### Rate Limiting
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `RATE_LIMITED` | 429 | Too many requests |
+| `QUOTA_EXCEEDED` | 429 | Plan quota exceeded |
+
+### Server Errors
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `INTERNAL_ERROR` | 500 | Server error |
+| `SERVICE_UNAVAILABLE` | 503 | Service down |
+| `GATEWAY_TIMEOUT` | 504 | No response |
+
+---
+
+## Error Handling Patterns
+
+### Try-Catch
+
+```javascript
+try {
+  const result = await executeTool({
+    tool: 'create_pr',
+    arguments: { /* ... */ }
+  });
+} catch (error) {
+  if (error.code === 'TOOL_NOT_FOUND') {
+    console.error('Tool not available');
+  } else if (error.code === 'INVALID_ARGUMENTS') {
+    console.error('Invalid parameters:', error.details);
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+---
+
+### Promise.catch()
+
+```javascript
+retrieveTools({ query: 'deploy' })
+  .catch(error => {
+    if (error.code === 'RATE_LIMITED') {
+      console.error(`Rate limited. Retry after ${error.details.retry_after}s`);
+    } else if (error.code === 'UNAUTHORIZED') {
+      console.error('Check your API key');
+    } else {
+      throw error; // Re-throw unknown errors
+    }
+  });
+```
+
+---
+
+### With Logging
+
+```javascript
+async function apiCall(url, options) {
+  const startTime = Date.now();
+  
+  try {
+    const response = await fetch(url, options);
+    const duration = Date.now() - startTime;
+    
+    if (!response.ok) {
+      const error = await response.json();
+      logError({
+        url,
+        status: response.status,
+        code: error.error.code,
+        duration,
+        requestId: error.request_id
+      });
+      throw error;
+    }
+    
+    logSuccess({ url, duration });
+    return await response.json();
+    
+  } catch (error) {
+    logError({ url, error });
+    throw error;
+  }
+}
+```
+
+---
+
+## Status Code Decisions
+
+### When to Retry
+
+**Always retry:**
+- 429 (Rate limited) - with exponential backoff
+- 503 (Service unavailable) - with exponential backoff
+- 504 (Timeout) - convert to job and poll
+
+**Sometimes retry:**
+- 500 (Internal error) - with limit (max 3x)
+
+**Never retry:**
+- 400 (Bad request) - fix parameters
+- 401 (Unauthorized) - check API key
+- 403 (Forbidden) - check permissions
+- 404 (Not found) - resource doesn't exist
+
+---
+
+## Rate Limit Recovery
+
+### Headers Check
+
+```javascript
+function checkRateLimit(response) {
+  const limit = parseInt(response.headers.get('X-RateLimit-Limit'));
+  const remaining = parseInt(response.headers.get('X-RateLimit-Remaining'));
+  const reset = parseInt(response.headers.get('X-RateLimit-Reset'));
+  
+  if (remaining === 0) {
+    const waitSeconds = Math.ceil((reset - Date.now() / 1000));
+    console.warn(`Rate limit hit. Wait ${waitSeconds}s`);
+  }
+  
+  return { limit, remaining, reset };
+}
+```
+
+### Adaptive Rate Limiting
+
+```javascript
+class AdaptiveClient {
+  constructor() {
+    this.requestsPerSecond = 10;
+  }
+  
+  async request(url, options) {
+    const response = await fetch(url, options);
+    const limits = checkRateLimit(response);
+    
+    // Reduce if getting close to limit
+    if (limits.remaining < limits.limit * 0.1) {
+      this.requestsPerSecond *= 0.5;
+    }
+    
+    // Increase if plenty of capacity
+    if (limits.remaining > limits.limit * 0.9) {
+      this.requestsPerSecond = Math.min(this.requestsPerSecond * 1.1, 100);
+    }
+    
+    return response;
+  }
+}
+```
+
+---
+
+## Common Mistakes
+
+### ❌ Not Handling 429
+
+```javascript
+// Bad - will crash on rate limit
+const tools = await Promise.all(
+  queries.map(q => retrieveTools({ query: q }))
+);
+```
+
+### ✅ Correct - Queue with Rate Limiting
+
+```javascript
+// Good - respects rate limits
+async function retrieveToolsQueued(queries) {
+  const results = [];
+  for (const query of queries) {
+    results.push(await retrieveTools({ query }));
+    await sleep(100); // Rate limiting
+  }
+  return results;
+}
+```
+
+---
+
+### ❌ Not Checking Error Code
+
+```javascript
+// Bad - treats all errors the same
+try {
+  await executeTool(config);
+} catch (error) {
+  console.error('Failed:', error);
+}
+```
+
+### ✅ Correct - Handle by Type
+
+```javascript
+// Good - different handling per error
+try {
+  await executeTool(config);
+} catch (error) {
+  switch (error.code) {
+    case 'TOOL_NOT_FOUND':
+      // List available tools
+      break;
+    case 'RATE_LIMITED':
+      // Retry with backoff
+      break;
+    default:
+      // Log and alert
+  }
+}
+```
+
+---
+
+## Debugging Tips
+
+### Enable Request Logging
+
+```javascript
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  console.log('Request:', args[0]);
+  const response = await originalFetch(...args);
+  console.log('Response:', response.status, response.statusText);
+  return response;
+};
+```
+
+### Check Request ID
+
+```javascript
+// Every error includes request_id for support
+const error = await response.json();
+console.log('Support request ID:', error.request_id);
+```
+
+### Validate Before Sending
+
+```javascript
+function validateToolParams(tool, params) {
+  const schema = tool.inputSchema;
+  
+  for (const required of schema.required || []) {
+    if (!(required in params)) {
+      throw new Error(`Missing required param: ${required}`);
+    }
+  }
+  
+  return true;
+}
+```
+
+---
+
+## Support Resources
+
+- **API Status:** https://status.agent-corex.com
+- **GitHub Issues:** https://github.com/ankitpro/agent-corex/issues
+- **Documentation:** https://docs.agent-corex.com
+- **Email Support:** support@agent-corex.com
+
+---
+
+## See Also
+
+- [Complete API Reference](/api-reference/complete-api-reference)
+- [Endpoints Quick Reference](/api-reference/endpoints-quick-reference)
+- [Tool Execution](/api-reference/tool-execution)
+- [Rate Limiting](#rate-limiting)
+

@@ -1,0 +1,553 @@
+---
+title: 'Tool Discovery & Retrieval'
+description: 'Search and discover tools using semantic queries and advanced filtering'
+---
+
+# Tool Discovery & Retrieval API
+
+Powerful semantic search to find the right tools for any task.
+
+---
+
+## Overview
+
+The Tool Discovery API provides three progressive levels of tool searching:
+
+1. **Basic Retrieval** (`/retrieve_tools`) - Simple semantic search
+2. **Advanced V2/V3** (`/v2/retrieve_tools`) - Hybrid with capability filtering
+3. **Registry Lookup** (`/tools/registry`) - Browse all available tools
+
+---
+
+## GET /retrieve_tools
+
+**Semantic tool search with optional filtering**
+
+### Authentication
+Optional (returns more detailed results with API key)
+
+### Query Parameters
+
+| Parameter | Type | Required | Default | Max |
+|-----------|------|----------|---------|-----|
+| `query` | string | Yes | - | 500 chars |
+| `top_k` | integer | No | 5 | 50 |
+
+### Request Examples
+
+**Basic Search:**
+```bash
+curl "https://api.agent-corex.com/retrieve_tools?query=create+github+pull+request" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**With Result Limit:**
+```bash
+curl "https://api.agent-corex.com/retrieve_tools?query=deploy&top_k=10" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "tools": [
+    {
+      "name": "create_pull_request",
+      "server": "github-mcp",
+      "score": 0.98,
+      "description": "Create a new pull request on GitHub",
+      "category": "version-control",
+      "tags": ["github", "git", "pr"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repository": { "type": "string", "description": "Repo in owner/repo format" },
+          "title": { "type": "string" },
+          "from_branch": { "type": "string" },
+          "to_branch": { "type": "string" }
+        },
+        "required": ["repository", "title", "from_branch", "to_branch"]
+      }
+    }
+  ],
+  "query_time_ms": 45,
+  "total_tools_searched": 156
+}
+```
+
+### Error Responses
+
+**Invalid Query (400):**
+```json
+{
+  "error": "Query parameter required and must be between 1-500 characters"
+}
+```
+
+**Rate Limited (429):**
+```json
+{
+  "error": "Rate limit exceeded. Reset in 3600 seconds."
+}
+```
+
+---
+
+## GET /v2/retrieve_tools
+
+**Advanced hybrid retrieval with capability classification**
+
+### Authentication
+Optional
+
+### Query Parameters
+
+| Parameter | Type | Required | Default | Notes |
+|-----------|------|----------|---------|-------|
+| `query` | string | Yes | - | User query |
+| `top_k` | integer | No | 5 | Range: 1-20 |
+| `use_hybrid_v3` | boolean | No | true | Use V3 algorithm |
+
+### Key Features
+
+- **Capability Filtering** - Classifies query intent automatically
+- **Query Rewriting** - Shows normalized query for transparency
+- **MCP Recommendations** - Suggests which servers to install
+- **Confidence Scores** - Shows how confident the classification is
+
+### Request Examples
+
+**Standard Advanced Search:**
+```bash
+curl "https://api.agent-corex.com/v2/retrieve_tools?query=deploy+to+AWS&top_k=5&use_hybrid_v3=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Explicit Server Focus:**
+```bash
+curl "https://api.agent-corex.com/v2/retrieve_tools?query=manage+kubernetes+clusters&top_k=10"
+```
+
+### Response Format
+
+```json
+{
+  "tools": [
+    {
+      "name": "deploy_to_aws",
+      "server": "aws-mcp",
+      "score": 0.96,
+      "description": "Deploy application to AWS",
+      "inputSchema": { /* ... */ }
+    }
+  ],
+  "selected_capability": "deployment",
+  "capability_confidence": 0.95,
+  "query_rewritten": "Deploy application to AWS cloud platform",
+  "recommended_mcps": [
+    {
+      "name": "aws-mcp",
+      "reason": "Primary deployment tools"
+    },
+    {
+      "name": "terraform-mcp",
+      "reason": "Infrastructure as code management"
+    }
+  ],
+  "query_id": "q_abc123def456"
+}
+```
+
+### Capability Classifications
+
+The API automatically classifies queries into:
+
+- **deployment** - Cloud/environment deployment
+- **infrastructure** - Infrastructure management
+- **monitoring** - Observability/logging
+- **version-control** - Git/GitHub operations
+- **ci-cd** - Pipeline/automation
+- **databases** - Database operations
+- **communication** - Slack/email/messaging
+- **development** - Code/IDE tools
+- **devops** - Operations tooling
+- **other** - Uncategorized
+
+---
+
+## GET /v2/capabilities
+
+**List all available MCP server capabilities**
+
+### Authentication
+Optional
+
+### Query Parameters
+None
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/v2/capabilities" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "capabilities": [
+    {
+      "server_name": "github-mcp",
+      "description": "Git version control and GitHub operations including PR creation, issue management, and repository administration"
+    },
+    {
+      "server_name": "aws-mcp",
+      "description": "AWS cloud infrastructure management including EC2, S3, Lambda, RDS, and deployment"
+    },
+    {
+      "server_name": "slack-mcp",
+      "description": "Slack messaging platform integration for sending messages, managing channels, and notifications"
+    }
+  ],
+  "total": 25
+}
+```
+
+---
+
+## GET /capabilities
+
+**List capabilities with tool counts**
+
+### Authentication
+Optional
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/capabilities" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "capabilities": [
+    {
+      "id": "version-control",
+      "name": "Git & Version Control",
+      "description": "Git and GitHub operations",
+      "tool_count": 12,
+      "icon": "github"
+    },
+    {
+      "id": "deployment",
+      "name": "Cloud Deployment",
+      "description": "Deploy to cloud platforms",
+      "tool_count": 18,
+      "icon": "cloud"
+    }
+  ],
+  "total": 15
+}
+```
+
+---
+
+## GET /tools
+
+**List all available tools**
+
+### Authentication
+Optional (recommended for complete results)
+
+### Query Parameters
+None
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/tools" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "tools": [
+    {
+      "name": "create_pull_request",
+      "server": "github-mcp",
+      "description": "Create a new pull request",
+      "category": "version-control",
+      "inputSchema": { /* ... */ }
+    }
+  ],
+  "total": 156,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+---
+
+## GET /tools/registry
+
+**Browse complete tool registry**
+
+### Authentication
+Not required
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/tools/registry"
+```
+
+### Response Format
+
+```json
+{
+  "tools": [
+    {
+      "name": "create_pr",
+      "display_name": "Create Pull Request",
+      "server": "github-mcp",
+      "category": "version-control",
+      "tags": ["github", "git", "collaboration"],
+      "description": "Create a new pull request"
+    }
+  ],
+  "total": 156
+}
+```
+
+---
+
+## GET /tools/registry/{tool_name}
+
+**Get detailed tool information**
+
+### Authentication
+Not required
+
+### Path Parameters
+
+| Parameter | Type | Required |
+|-----------|------|----------|
+| `tool_name` | string | Yes |
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/tools/registry/create_pr"
+```
+
+### Response Format
+
+```json
+{
+  "name": "create_pr",
+  "display_name": "Create Pull Request",
+  "server": "github-mcp",
+  "description": "Create a new pull request on GitHub",
+  "category": "version-control",
+  "tags": ["github", "git", "pr"],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repository": {
+        "type": "string",
+        "description": "Repository in owner/repo format"
+      },
+      "title": {
+        "type": "string",
+        "description": "Pull request title"
+      },
+      "from_branch": {
+        "type": "string",
+        "description": "Source branch name"
+      },
+      "to_branch": {
+        "type": "string",
+        "description": "Target branch name"
+      },
+      "body": {
+        "type": "string",
+        "description": "PR description (optional)"
+      }
+    },
+    "required": ["repository", "title", "from_branch", "to_branch"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "pr_number": { "type": "integer" },
+      "pr_url": { "type": "string" },
+      "status": { "type": "string" }
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "repository": "owner/repo",
+        "title": "Add new feature",
+        "from_branch": "feature/new",
+        "to_branch": "main"
+      },
+      "output": {
+        "pr_number": 123,
+        "pr_url": "https://github.com/owner/repo/pull/123",
+        "status": "open"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Search Tips
+
+### Writing Effective Queries
+
+**❌ Bad Queries:**
+- "stuff"
+- "help"
+- "do things"
+
+**✅ Good Queries:**
+- "Create a GitHub pull request"
+- "Deploy to AWS and notify Slack"
+- "Monitor logs and create alert"
+
+### Query Optimization
+
+1. **Be Specific** - Include tool names or services
+2. **Use Action Verbs** - "create", "deploy", "manage", "monitor"
+3. **Specify Services** - "GitHub", "AWS", "Slack"
+4. **Include Context** - "production", "staging", "all regions"
+
+### Multi-Step Workflows
+
+For complex workflows, chain multiple queries:
+
+```bash
+# Step 1: Find deployment tools
+curl "https://api.agent-corex.com/retrieve_tools?query=deploy+to+AWS"
+
+# Step 2: Find notification tools
+curl "https://api.agent-corex.com/retrieve_tools?query=send+Slack+notification"
+
+# Step 3: Execute both in sequence
+curl -X POST "https://api.agent-corex.com/execute_tool" \
+  -d '{"tool": "deploy_to_aws", "arguments": {...}}'
+curl -X POST "https://api.agent-corex.com/execute_tool" \
+  -d '{"tool": "send_slack_message", "arguments": {...}}'
+```
+
+---
+
+## Response Scoring
+
+Tools are ranked by relevance score (0.0 to 1.0):
+
+| Score | Meaning |
+|-------|---------|
+| 0.90+ | Highly relevant - exact match |
+| 0.75-0.89 | Very relevant - good match |
+| 0.60-0.74 | Relevant - related match |
+| <0.60 | Marginal - use with caution |
+
+---
+
+## Caching Strategy
+
+Tool lists don't change frequently. Consider caching:
+
+```javascript
+// Cache tools for 1 hour
+const CACHE_TTL = 3600000; // 1 hour
+
+async function getToolsWithCache(query) {
+  const cacheKey = `tools_${query}`;
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (cached && Date.now() - JSON.parse(cached).timestamp < CACHE_TTL) {
+    return JSON.parse(cached).data;
+  }
+  
+  const tools = await fetch(`/retrieve_tools?query=${query}`);
+  localStorage.setItem(cacheKey, JSON.stringify({
+    data: tools,
+    timestamp: Date.now()
+  }));
+  
+  return tools;
+}
+```
+
+---
+
+## Error Handling
+
+```javascript
+async function safeRetrieveTools(query) {
+  try {
+    const response = await fetch(`/retrieve_tools?query=${query}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Rate limited - retry in 60 seconds');
+      } else if (response.status === 400) {
+        throw new Error('Invalid query');
+      }
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Tool retrieval failed:', error);
+    return { tools: [] };
+  }
+}
+```
+
+---
+
+## Pagination
+
+Tools endpoints support pagination:
+
+```bash
+curl "https://api.agent-corex.com/tools?limit=20&offset=0"
+```
+
+Response includes pagination info:
+
+```json
+{
+  "tools": [...],
+  "pagination": {
+    "limit": 20,
+    "offset": 0,
+    "total": 156,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## See Also
+
+- [Tool Execution](/api-reference/tool-execution)
+- [MCP Servers](/api-reference/mcp-servers)
+- [Tool Retrieval System](/tool-retrieval/how-it-works)
+- [Code Examples](/examples/sample-queries)
+

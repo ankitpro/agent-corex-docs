@@ -1,0 +1,843 @@
+---
+title: 'SDK Examples'
+description: 'Official and community SDKs for JavaScript, Python, and Go'
+---
+
+# SDK Examples
+
+Official SDKs and code examples for popular languages.
+
+---
+
+## SDK Availability
+
+| Language | Status | Package | GitHub |
+|----------|--------|---------|--------|
+| **JavaScript/TypeScript** | ✅ Official | `npm install @agent-corex/sdk` | [agent-corex-js](https://github.com/ankitpro/agent-corex-js) |
+| **Python** | ✅ Official | `pip install agent-corex` | [agent-corex-py](https://github.com/ankitpro/agent-corex-py) |
+| **Go** | ✅ Official | `go get github.com/ankitpro/agent-corex-go` | [agent-corex-go](https://github.com/ankitpro/agent-corex-go) |
+
+---
+
+## JavaScript/TypeScript
+
+### Installation
+
+```bash
+npm install @agent-corex/sdk
+# or
+yarn add @agent-corex/sdk
+```
+
+### Basic Usage
+
+```typescript
+import { AgentCorex } from '@agent-corex/sdk';
+
+const client = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY
+});
+
+// Search for tools
+const tools = await client.retrieveTools({
+  query: 'Create a GitHub pull request',
+  topK: 5
+});
+
+console.log(tools);
+// Output:
+// {
+//   tools: [
+//     { name: 'create_pull_request', server: 'github-mcp', score: 0.98 },
+//     { name: 'create_issue', server: 'github-mcp', score: 0.92 }
+//   ],
+//   queryTimeMs: 45,
+//   totalToolsSearched: 156
+// }
+```
+
+---
+
+### Execute Tool Synchronously
+
+```typescript
+const result = await client.executeTool({
+  tool: 'create_pull_request',
+  arguments: {
+    repository: 'owner/repo',
+    title: 'Fix critical bug',
+    from_branch: 'hotfix/bug-123',
+    to_branch: 'main',
+    body: 'This PR fixes issue #456'
+  }
+});
+
+console.log('PR created:', result.result.pr_url);
+```
+
+---
+
+### Execute Tool Asynchronously
+
+```typescript
+// Submit job
+const job = await client.submitJob({
+  tool: 'deploy_to_aws',
+  arguments: {
+    environment: 'production',
+    service: 'api',
+    version: '1.2.3'
+  }
+});
+
+console.log('Job submitted:', job.jobId);
+
+// Poll for completion
+const completed = await client.pollJob(job.jobId, {
+  maxRetries: 60,
+  pollInterval: 5000 // 5 seconds
+});
+
+if (completed.status === 'completed') {
+  console.log('Deployment successful:', completed.result);
+} else if (completed.status === 'failed') {
+  console.error('Deployment failed:', completed.error);
+}
+```
+
+---
+
+### Using Webhooks
+
+```typescript
+// Register webhook
+const webhook = await client.registerWebhook({
+  url: 'https://your-domain.com/webhooks/agent-corex',
+  events: ['job.completed', 'job.failed']
+});
+
+console.log('Webhook registered:', webhook.id);
+
+// Handle webhook in your server
+import express from 'express';
+const app = express();
+
+app.post('/webhooks/agent-corex', express.json(), (req, res) => {
+  const event = req.body;
+  
+  switch (event.event) {
+    case 'job.completed':
+      console.log('Job completed:', event.data);
+      break;
+    case 'job.failed':
+      console.error('Job failed:', event.data.error);
+      break;
+  }
+  
+  res.json({ received: true });
+});
+```
+
+---
+
+### Create Custom Pack
+
+```typescript
+// Create custom server
+const server = await client.createCustomServer({
+  name: 'internal-api',
+  displayName: 'Internal API',
+  description: 'Tools for internal REST API',
+  url: 'https://api.internal.com',
+  category: 'custom'
+});
+
+console.log('Server created:', server.id);
+
+// Create pack with servers
+const pack = await client.createPack({
+  name: 'Backend Development',
+  description: 'Tools for backend development',
+  servers: ['github-mcp', 'postgresql-mcp', server.id]
+});
+
+console.log('Pack created:', pack.id);
+
+// Enable pack
+await client.enablePack(pack.id);
+console.log('Pack enabled');
+```
+
+---
+
+### Error Handling
+
+```typescript
+try {
+  const tools = await client.retrieveTools({
+    query: 'deploy to AWS'
+  });
+} catch (error) {
+  if (error.code === 'UNAUTHORIZED') {
+    console.error('Invalid API key');
+  } else if (error.code === 'RATE_LIMITED') {
+    console.error('Rate limited. Retry after:', error.retryAfter, 'seconds');
+  } else if (error.code === 'TOOL_NOT_FOUND') {
+    console.error('Tool not found. Available tools:', error.suggestions);
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
+```
+
+---
+
+### Batch Operations
+
+```typescript
+// Execute multiple tools in parallel
+const queries = [
+  'Create GitHub PR',
+  'Deploy to AWS',
+  'Send Slack message'
+];
+
+const results = await Promise.all(
+  queries.map(q => client.retrieveTools({ query: q }))
+);
+
+console.log('Results:', results);
+
+// Execute multiple tools sequentially
+const tools = ['create_pr', 'deploy_aws', 'send_slack'];
+const outputs = [];
+
+for (const tool of tools) {
+  const result = await client.executeTool({
+    tool,
+    arguments: { /* ... */ }
+  });
+  outputs.push(result);
+}
+```
+
+---
+
+### List and Manage Tools
+
+```typescript
+// List all tools
+const allTools = await client.listTools();
+console.log('Total tools:', allTools.length);
+
+// List enabled servers
+const servers = await client.listServers();
+console.log('Enabled servers:', servers.map(s => s.name));
+
+// Get tool details
+const tool = await client.getTool('create_pull_request');
+console.log('Tool schema:', tool.inputSchema);
+
+// List user's packs
+const packs = await client.listPacks();
+console.log('Your packs:', packs.map(p => p.name));
+```
+
+---
+
+### Advanced Configuration
+
+```typescript
+const client = new AgentCorex({
+  apiKey: process.env.AGENT_COREX_API_KEY,
+  baseUrl: 'https://api.agent-corex.com', // Custom endpoint
+  timeout: 30000, // 30 second timeout
+  maxRetries: 3,
+  retryDelay: 1000, // milliseconds
+  headers: {
+    'User-Agent': 'my-app/1.0.0'
+  }
+});
+```
+
+---
+
+## Python
+
+### Installation
+
+```bash
+pip install agent-corex
+```
+
+### Basic Usage
+
+```python
+from agent_corex import AgentCorex
+import os
+
+client = AgentCorex(api_key=os.environ['AGENT_COREX_API_KEY'])
+
+# Search for tools
+tools = client.retrieve_tools(
+    query='Create a GitHub pull request',
+    top_k=5
+)
+
+print(tools)
+# Output:
+# {
+#     'tools': [
+#         {'name': 'create_pull_request', 'server': 'github-mcp', 'score': 0.98},
+#         {'name': 'create_issue', 'server': 'github-mcp', 'score': 0.92}
+#     ],
+#     'query_time_ms': 45,
+#     'total_tools_searched': 156
+# }
+```
+
+---
+
+### Execute Tool Synchronously
+
+```python
+result = client.execute_tool(
+    tool='create_pull_request',
+    arguments={
+        'repository': 'owner/repo',
+        'title': 'Fix critical bug',
+        'from_branch': 'hotfix/bug-123',
+        'to_branch': 'main',
+        'body': 'This PR fixes issue #456'
+    }
+)
+
+print(f"PR created: {result['result']['pr_url']}")
+```
+
+---
+
+### Execute Tool Asynchronously
+
+```python
+import time
+
+# Submit job
+job = client.submit_job(
+    tool='deploy_to_aws',
+    arguments={
+        'environment': 'production',
+        'service': 'api',
+        'version': '1.2.3'
+    }
+)
+
+print(f"Job submitted: {job['job_id']}")
+
+# Poll for completion
+while True:
+    status = client.get_job_status(job['job_id'])
+    
+    if status['status'] == 'completed':
+        print("Deployment successful:", status['result'])
+        break
+    elif status['status'] == 'failed':
+        print("Deployment failed:", status['error'])
+        break
+    elif status['status'] == 'running':
+        print("Still running...")
+    
+    time.sleep(5)  # Poll every 5 seconds
+```
+
+---
+
+### Using Webhooks
+
+```python
+from flask import Flask, request
+
+app = Flask(__name__)
+
+# Register webhook
+webhook = client.register_webhook(
+    url='https://your-domain.com/webhooks/agent-corex',
+    events=['job.completed', 'job.failed']
+)
+
+print(f"Webhook registered: {webhook['id']}")
+
+# Handle webhook
+@app.post('/webhooks/agent-corex')
+def handle_webhook():
+    event = request.json
+    
+    if event['event'] == 'job.completed':
+        print("Job completed:", event['data'])
+    elif event['event'] == 'job.failed':
+        print("Job failed:", event['data']['error'])
+    
+    return {'received': True}
+
+if __name__ == '__main__':
+    app.run()
+```
+
+---
+
+### Create Custom Pack
+
+```python
+# Create custom server
+server = client.create_custom_server(
+    name='internal-api',
+    display_name='Internal API',
+    description='Tools for internal REST API',
+    url='https://api.internal.com',
+    category='custom'
+)
+
+print(f"Server created: {server['id']}")
+
+# Create pack
+pack = client.create_pack(
+    name='Backend Development',
+    description='Tools for backend development',
+    servers=['github-mcp', 'postgresql-mcp', server['id']]
+)
+
+print(f"Pack created: {pack['id']}")
+
+# Enable pack
+client.enable_pack(pack['id'])
+print("Pack enabled")
+```
+
+---
+
+### Error Handling
+
+```python
+from agent_corex.exceptions import (
+    UnauthorizedError,
+    RateLimitedError,
+    ToolNotFoundError
+)
+
+try:
+    tools = client.retrieve_tools(query='deploy to AWS')
+except UnauthorizedError:
+    print("Invalid API key")
+except RateLimitedError as e:
+    print(f"Rate limited. Retry after {e.retry_after} seconds")
+except ToolNotFoundError as e:
+    print(f"Tool not found. Available: {e.suggestions}")
+except Exception as e:
+    print(f"Unexpected error: {e}")
+```
+
+---
+
+### Batch Operations
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+# Execute multiple tools in parallel
+queries = [
+    'Create GitHub PR',
+    'Deploy to AWS',
+    'Send Slack message'
+]
+
+with ThreadPoolExecutor(max_workers=3) as executor:
+    results = list(executor.map(
+        lambda q: client.retrieve_tools(query=q),
+        queries
+    ))
+
+print("Results:", results)
+
+# Execute tools sequentially
+tools = ['create_pr', 'deploy_aws', 'send_slack']
+outputs = []
+
+for tool in tools:
+    result = client.execute_tool(
+        tool=tool,
+        arguments={...}
+    )
+    outputs.append(result)
+```
+
+---
+
+### List and Manage Tools
+
+```python
+# List all tools
+all_tools = client.list_tools()
+print(f"Total tools: {len(all_tools)}")
+
+# List enabled servers
+servers = client.list_servers()
+print(f"Enabled servers: {[s['name'] for s in servers]}")
+
+# Get tool details
+tool = client.get_tool('create_pull_request')
+print(f"Tool schema: {tool['inputSchema']}")
+
+# List user's packs
+packs = client.list_packs()
+print(f"Your packs: {[p['name'] for p in packs]}")
+```
+
+---
+
+### Advanced Configuration
+
+```python
+client = AgentCorex(
+    api_key=os.environ['AGENT_COREX_API_KEY'],
+    base_url='https://api.agent-corex.com',  # Custom endpoint
+    timeout=30,  # seconds
+    max_retries=3,
+    verify_ssl=True
+)
+```
+
+---
+
+## Go
+
+### Installation
+
+```bash
+go get github.com/ankitpro/agent-corex-go
+```
+
+### Basic Usage
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/ankitpro/agent-corex-go"
+)
+
+func main() {
+	client := agentcorex.NewClient(
+		os.Getenv("AGENT_COREX_API_KEY"),
+	)
+
+	// Search for tools
+	tools, err := client.RetrieveTools(context.Background(), 
+		&agentcorex.RetrieveToolsRequest{
+			Query: "Create a GitHub pull request",
+			TopK:  5,
+		})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Found %d tools\n", len(tools.Tools))
+	for _, tool := range tools.Tools {
+		fmt.Printf("- %s (score: %.2f)\n", tool.Name, tool.Score)
+	}
+}
+```
+
+---
+
+### Execute Tool Synchronously
+
+```go
+result, err := client.ExecuteTool(context.Background(),
+	&agentcorex.ExecuteToolRequest{
+		Tool: "create_pull_request",
+		Arguments: map[string]interface{}{
+			"repository":  "owner/repo",
+			"title":       "Fix critical bug",
+			"from_branch": "hotfix/bug-123",
+			"to_branch":   "main",
+		},
+	})
+
+if err != nil {
+	panic(err)
+}
+
+fmt.Printf("PR created: %v\n", result.Result)
+```
+
+---
+
+### Execute Tool Asynchronously
+
+```go
+import (
+	"time"
+)
+
+// Submit job
+job, err := client.SubmitJob(context.Background(),
+	&agentcorex.SubmitJobRequest{
+		Tool: "deploy_to_aws",
+		Arguments: map[string]interface{}{
+			"environment": "production",
+			"service":     "api",
+			"version":     "1.2.3",
+		},
+	})
+
+if err != nil {
+	panic(err)
+}
+
+fmt.Printf("Job submitted: %s\n", job.JobID)
+
+// Poll for completion
+for i := 0; i < 60; i++ {
+	status, err := client.GetJobStatus(context.Background(), job.JobID)
+	if err != nil {
+		panic(err)
+	}
+
+	if status.Status == "completed" {
+		fmt.Printf("Job completed: %v\n", status.Result)
+		break
+	} else if status.Status == "failed" {
+		fmt.Printf("Job failed: %v\n", status.Error)
+		break
+	}
+
+	time.Sleep(5 * time.Second)
+}
+```
+
+---
+
+### Create Custom Pack
+
+```go
+// Create custom server
+server, err := client.CreateCustomServer(context.Background(),
+	&agentcorex.CreateServerRequest{
+		Name:        "internal-api",
+		DisplayName: "Internal API",
+		Description: "Tools for internal REST API",
+		URL:         "https://api.internal.com",
+		Category:    "custom",
+	})
+
+if err != nil {
+	panic(err)
+}
+
+fmt.Printf("Server created: %s\n", server.ID)
+
+// Create pack
+pack, err := client.CreatePack(context.Background(),
+	&agentcorex.CreatePackRequest{
+		Name:        "Backend Development",
+		Description: "Tools for backend development",
+		Servers:     []string{"github-mcp", "postgresql-mcp", server.ID},
+	})
+
+if err != nil {
+	panic(err)
+}
+
+fmt.Printf("Pack created: %s\n", pack.ID)
+
+// Enable pack
+if err := client.EnablePack(context.Background(), pack.ID); err != nil {
+	panic(err)
+}
+
+fmt.Println("Pack enabled")
+```
+
+---
+
+### Error Handling
+
+```go
+import (
+	"errors"
+	"github.com/ankitpro/agent-corex-go"
+)
+
+tools, err := client.RetrieveTools(ctx, &agentcorex.RetrieveToolsRequest{
+	Query: "deploy to AWS",
+})
+
+if err != nil {
+	var errResp *agentcorex.ErrorResponse
+	if errors.As(err, &errResp) {
+		switch errResp.Code {
+		case "UNAUTHORIZED":
+			fmt.Println("Invalid API key")
+		case "RATE_LIMITED":
+			fmt.Printf("Rate limited. Retry after %d seconds\n", errResp.RetryAfter)
+		case "TOOL_NOT_FOUND":
+			fmt.Printf("Tool not found\n")
+		default:
+			fmt.Printf("Error: %s\n", errResp.Message)
+		}
+	}
+}
+```
+
+---
+
+### Batch Operations
+
+```go
+import (
+	"sync"
+)
+
+// Execute multiple tools in parallel
+queries := []string{
+	"Create GitHub PR",
+	"Deploy to AWS",
+	"Send Slack message",
+}
+
+var wg sync.WaitGroup
+results := make([]interface{}, len(queries))
+errors := make([]error, len(queries))
+
+for i, query := range queries {
+	wg.Add(1)
+	go func(idx int, q string) {
+		defer wg.Done()
+		tools, err := client.RetrieveTools(ctx,
+			&agentcorex.RetrieveToolsRequest{Query: q})
+		results[idx] = tools
+		errors[idx] = err
+	}(i, query)
+}
+
+wg.Wait()
+fmt.Printf("Completed %d queries\n", len(queries))
+```
+
+---
+
+## Comparison Matrix
+
+| Feature | JavaScript | Python | Go |
+|---------|-----------|--------|-----|
+| **Installation** | npm | pip | go get |
+| **Type Safety** | ✓ (TS) | ✗ | ✓ |
+| **Async/Await** | ✓ | ✓ | ✓ (channels) |
+| **Error Handling** | exceptions | exceptions | errors |
+| **Webhook Support** | ✓ | ✓ | ✓ |
+| **Middleware** | ✓ | ✓ | ✓ |
+| **Retry Logic** | built-in | built-in | built-in |
+
+---
+
+## Real-World Workflow
+
+### Example: CI/CD Deployment Pipeline
+
+**JavaScript:**
+```typescript
+const client = new AgentCorex({ apiKey });
+
+async function deployPipeline() {
+  // 1. Create PR
+  const pr = await client.executeTool({
+    tool: 'create_pull_request',
+    arguments: { /* ... */ }
+  });
+
+  // 2. Run tests
+  const tests = await client.submitJob({
+    tool: 'run_tests',
+    arguments: { /* ... */ }
+  });
+
+  // 3. Deploy
+  const deploy = await client.submitJob({
+    tool: 'deploy_to_aws',
+    arguments: { /* ... */ }
+  });
+
+  // 4. Notify
+  await client.executeTool({
+    tool: 'send_slack',
+    arguments: { /* ... */ }
+  });
+}
+```
+
+---
+
+**Python:**
+```python
+async def deploy_pipeline():
+    # Create PR
+    pr = await client.create_pull_request(...)
+    
+    # Run tests
+    tests = await client.run_tests(...)
+    
+    # Deploy
+    deploy = await client.deploy_to_aws(...)
+    
+    # Notify
+    await client.send_slack(...)
+```
+
+---
+
+**Go:**
+```go
+func deployPipeline(ctx context.Context) error {
+    // Create PR
+    pr, _ := client.CreatePullRequest(ctx, ...)
+    
+    // Run tests
+    tests, _ := client.RunTests(ctx, ...)
+    
+    // Deploy
+    deploy, _ := client.DeployToAWS(ctx, ...)
+    
+    // Notify
+    return client.SendSlack(ctx, ...)
+}
+```
+
+---
+
+## Community SDKs
+
+| Language | Package | Status |
+|----------|---------|--------|
+| **Rust** | `agent-corex` | Community |
+| **PHP** | `agent-corex/sdk` | Community |
+| **Java** | `com.agentcorex:sdk` | Community |
+
+---
+
+## Contributing
+
+Want to build an SDK? [See Contributing Guide](https://github.com/ankitpro/agent-corex/blob/main/CONTRIBUTING.md)
+
+---
+
+## See Also
+
+- [API Reference](/api-reference/complete-api-reference)
+- [Error Handling](/api-reference/errors)
+- [Webhooks](/api-reference/webhooks)
+- [Examples](/examples/code-samples)
+

@@ -1,0 +1,629 @@
+---
+title: 'Tool Execution & Jobs'
+description: 'Execute tools synchronously or asynchronously with job management'
+---
+
+# Tool Execution & Jobs API
+
+Execute discovered tools and manage long-running tasks.
+
+---
+
+## Overview
+
+Two execution modes:
+
+1. **Direct Execution** (`/execute_tool`) - Synchronous, immediate results
+2. **Job Queue** (`/jobs/*`) - Asynchronous, background execution
+
+Choose based on your needs:
+
+| Mode | Best For | Response Time |
+|------|----------|----------------|
+| Direct | Quick operations | < 5 seconds |
+| Job Queue | Long tasks | Hours/days |
+
+---
+
+## POST /execute_tool
+
+**Execute a tool directly (admin only)**
+
+### Authentication
+Required (Admin key)
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `tool` | string | Yes | Tool name |
+| `arguments` | object | Yes | Tool parameters |
+| `mode` | string | No | Execution mode |
+
+### Request Examples
+
+**Simple Execution:**
+```bash
+curl -X POST "https://api.agent-corex.com/execute_tool" \
+  -H "Authorization: Bearer ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool": "create_pull_request",
+    "arguments": {
+      "repository": "owner/repo",
+      "title": "Fix critical bug",
+      "from_branch": "hotfix/bug",
+      "to_branch": "main",
+      "body": "This PR fixes issue #123"
+    }
+  }'
+```
+
+**With Timeout:**
+```bash
+curl -X POST "https://api.agent-corex.com/execute_tool" \
+  -H "Authorization: Bearer ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool": "deploy_to_aws",
+    "arguments": {
+      "environment": "production",
+      "service": "api",
+      "version": "1.2.3"
+    },
+    "timeout_ms": 60000
+  }'
+```
+
+### Response Format
+
+**Success (200):**
+```json
+{
+  "tool": "create_pull_request",
+  "status": "success",
+  "result": {
+    "pr_number": 123,
+    "pr_url": "https://github.com/owner/repo/pull/123",
+    "created_at": "2024-01-15T10:30:00Z",
+    "author": "bot-user"
+  },
+  "execution_time_ms": 2450,
+  "tokens_used": {
+    "input": 150,
+    "output": 200
+  }
+}
+```
+
+**Error (400):**
+```json
+{
+  "tool": "create_pull_request",
+  "status": "error",
+  "error": {
+    "code": "INVALID_ARGUMENTS",
+    "message": "Missing required argument: repository",
+    "argument": "repository"
+  }
+}
+```
+
+**Timeout (504):**
+```json
+{
+  "tool": "deploy_to_aws",
+  "status": "timeout",
+  "error": {
+    "code": "EXECUTION_TIMEOUT",
+    "message": "Tool execution exceeded 60000ms timeout"
+  }
+}
+```
+
+### Error Codes
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `TOOL_NOT_FOUND` | 404 | Tool doesn't exist |
+| `INVALID_ARGUMENTS` | 400 | Missing/invalid params |
+| `EXECUTION_ERROR` | 500 | Tool execution failed |
+| `EXECUTION_TIMEOUT` | 504 | Tool took too long |
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many executions |
+
+---
+
+## POST /jobs/submit
+
+**Submit async job for execution**
+
+### Authentication
+Required
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `tool` | string | Yes | Tool name |
+| `arguments` | object | Yes | Tool parameters |
+
+### Request Example
+
+```bash
+curl -X POST "https://api.agent-corex.com/jobs/submit" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool": "deploy_to_aws",
+    "arguments": {
+      "environment": "production",
+      "service": "api",
+      "version": "1.2.3"
+    }
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "job_id": "job_abc123def456",
+  "status": "queued",
+  "tool": "deploy_to_aws",
+  "created_at": 1705315800,
+  "estimated_duration_ms": 120000
+}
+```
+
+---
+
+## GET /jobs/{job_id}
+
+**Poll job status and retrieve results**
+
+### Authentication
+Required
+
+### Path Parameters
+
+| Parameter | Type | Required |
+|-----------|------|----------|
+| `job_id` | string | Yes |
+
+### Request Example
+
+```bash
+curl "https://api.agent-corex.com/jobs/job_abc123def456" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format (Queued)
+
+```json
+{
+  "job_id": "job_abc123def456",
+  "status": "queued",
+  "tool": "deploy_to_aws",
+  "created_at": 1705315800,
+  "position_in_queue": 3
+}
+```
+
+### Response Format (Running)
+
+```json
+{
+  "job_id": "job_abc123def456",
+  "status": "running",
+  "tool": "deploy_to_aws",
+  "created_at": 1705315800,
+  "started_at": 1705315820,
+  "progress": {
+    "current_step": "deploying-containers",
+    "total_steps": 5,
+    "percentage": 40
+  }
+}
+```
+
+### Response Format (Completed)
+
+```json
+{
+  "job_id": "job_abc123def456",
+  "status": "completed",
+  "tool": "deploy_to_aws",
+  "created_at": 1705315800,
+  "started_at": 1705315820,
+  "completed_at": 1705315920,
+  "result": {
+    "deployment_id": "deploy_abc123",
+    "status": "success",
+    "url": "https://api.example.com",
+    "version": "1.2.3"
+  },
+  "execution_time_ms": 100000
+}
+```
+
+### Response Format (Failed)
+
+```json
+{
+  "job_id": "job_abc123def456",
+  "status": "failed",
+  "tool": "deploy_to_aws",
+  "created_at": 1705315800,
+  "started_at": 1705315820,
+  "completed_at": 1705315920,
+  "error": {
+    "code": "INSUFFICIENT_PERMISSIONS",
+    "message": "AWS credentials don't have permission to deploy",
+    "details": {
+      "action": "ec2:RunInstances",
+      "resource": "arn:aws:ec2:*:*:instance/*"
+    }
+  }
+}
+```
+
+### Job Status Values
+
+| Status | Meaning |
+|--------|---------|
+| `queued` | Waiting for execution |
+| `running` | Currently executing |
+| `completed` | Finished successfully |
+| `failed` | Execution error |
+| `canceled` | User canceled |
+| `timeout` | Exceeded time limit |
+
+---
+
+## DELETE /jobs/{job_id}
+
+**Cancel a queued job**
+
+### Authentication
+Required (Job owner only)
+
+### Path Parameters
+
+| Parameter | Type | Required |
+|-----------|------|----------|
+| `job_id` | string | Yes |
+
+### Request Example
+
+```bash
+curl -X DELETE "https://api.agent-corex.com/jobs/job_abc123def456" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "job_id": "job_abc123def456",
+  "status": "canceled",
+  "message": "Job canceled successfully"
+}
+```
+
+### Error Cases
+
+**Can't cancel running job (400):**
+```json
+{
+  "error": {
+    "code": "CANNOT_CANCEL_RUNNING",
+    "message": "Cannot cancel a job that is already running"
+  }
+}
+```
+
+**Job not found (404):**
+```json
+{
+  "error": {
+    "code": "JOB_NOT_FOUND",
+    "message": "Job job_abc123 does not exist"
+  }
+}
+```
+
+---
+
+## GET /jobs
+
+**List user's recent jobs**
+
+### Authentication
+Required
+
+### Query Parameters
+
+| Parameter | Type | Default | Max |
+|-----------|------|---------|-----|
+| `limit` | integer | 20 | 100 |
+| `offset` | integer | 0 | - |
+| `status` | string | all | queued, running, completed, failed |
+
+### Request Examples
+
+**List Recent Jobs:**
+```bash
+curl "https://api.agent-corex.com/jobs" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Filter by Status:**
+```bash
+curl "https://api.agent-corex.com/jobs?status=failed&limit=50" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response Format
+
+```json
+{
+  "jobs": [
+    {
+      "job_id": "job_abc123",
+      "tool": "deploy_to_aws",
+      "status": "completed",
+      "created_at": 1705315800,
+      "completed_at": 1705315920
+    },
+    {
+      "job_id": "job_def456",
+      "tool": "create_pull_request",
+      "status": "running",
+      "created_at": 1705315850
+    }
+  ],
+  "pagination": {
+    "limit": 20,
+    "offset": 0,
+    "total": 156
+  }
+}
+```
+
+---
+
+## Polling Strategy
+
+### Exponential Backoff
+
+```javascript
+async function pollJobWithBackoff(jobId, maxRetries = 10) {
+  let retries = 0;
+  let delay = 1000; // Start with 1 second
+  
+  while (retries < maxRetries) {
+    try {
+      const response = await fetch(`/jobs/${jobId}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const job = await response.json();
+      
+      if (['completed', 'failed', 'canceled', 'timeout'].includes(job.status)) {
+        return job;
+      }
+      
+      retries++;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay = Math.min(delay * 1.5, 30000); // Max 30 second delay
+      
+    } catch (error) {
+      console.error('Poll failed:', error);
+      throw error;
+    }
+  }
+  
+  throw new Error('Job polling timeout');
+}
+```
+
+### Event Stream Polling
+
+```javascript
+async function pollJobWithStream(jobId) {
+  const eventSource = new EventSource(`/jobs/${jobId}/stream`);
+  
+  return new Promise((resolve, reject) => {
+    eventSource.onmessage = (event) => {
+      const job = JSON.parse(event.data);
+      
+      if (['completed', 'failed'].includes(job.status)) {
+        eventSource.close();
+        resolve(job);
+      }
+    };
+    
+    eventSource.onerror = (error) => {
+      eventSource.close();
+      reject(error);
+    };
+  });
+}
+```
+
+---
+
+## Webhook Notifications
+
+For long-running jobs, register webhooks instead of polling:
+
+### Register Webhook
+
+```bash
+curl -X POST "https://api.agent-corex.com/webhooks" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-domain.com/webhooks/jobs",
+    "events": ["job.completed", "job.failed"]
+  }'
+```
+
+### Webhook Payload
+
+```json
+{
+  "event": "job.completed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "job": {
+    "job_id": "job_abc123",
+    "status": "completed",
+    "tool": "deploy_to_aws",
+    "result": { /* ... */ }
+  }
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Use Jobs for Long Operations
+
+```javascript
+// ✅ Good - Use jobs for operations > 5 seconds
+const job = await submitJob({
+  tool: 'deploy_to_production',
+  arguments: { /* ... */ }
+});
+
+// ❌ Bad - Direct execution for long task
+const result = await executeTool({
+  tool: 'deploy_to_production'
+});
+```
+
+### 2. Handle All Job States
+
+```javascript
+async function executeAndWait(jobId) {
+  const job = await pollJob(jobId);
+  
+  switch (job.status) {
+    case 'completed':
+      console.log('Success:', job.result);
+      break;
+    case 'failed':
+      console.error('Error:', job.error.message);
+      break;
+    case 'canceled':
+      console.log('Job was canceled');
+      break;
+    case 'timeout':
+      console.error('Job execution timed out');
+      break;
+  }
+}
+```
+
+### 3. Store Job IDs
+
+```javascript
+// Save job IDs for recovery
+const jobId = job.job_id;
+localStorage.setItem(`job_${jobId}`, JSON.stringify({
+  tool: job.tool,
+  createdAt: Date.now(),
+  arguments: job.arguments
+}));
+
+// Later, retrieve results
+const savedJob = JSON.parse(localStorage.getItem(`job_${jobId}`));
+const status = await getJobStatus(jobId);
+```
+
+### 4. Implement Timeout Logic
+
+```javascript
+async function executeWithTimeout(jobId, timeoutMs = 3600000) {
+  const startTime = Date.now();
+  
+  while (true) {
+    const elapsed = Date.now() - startTime;
+    
+    if (elapsed > timeoutMs) {
+      throw new Error(`Job execution timeout after ${elapsed}ms`);
+    }
+    
+    const job = await pollJob(jobId);
+    
+    if (['completed', 'failed', 'canceled'].includes(job.status)) {
+      return job;
+    }
+    
+    await sleep(5000);
+  }
+}
+```
+
+---
+
+## Rate Limiting
+
+Execution endpoints have rate limits:
+
+| Plan | Requests/min | Max Concurrent |
+|------|--------------|---|
+| Free | 10 | 1 |
+| Pro | 100 | 5 |
+| Enterprise | Custom | Custom |
+
+Headers included in response:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1642262400
+```
+
+---
+
+## Monitoring & Observability
+
+### List All Jobs
+
+```bash
+curl "https://api.agent-corex.com/jobs?status=running&limit=100" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Track Execution Metrics
+
+```javascript
+async function getExecutionMetrics(tool) {
+  const jobs = await listJobs({ 
+    limit: 100,
+    tool: tool 
+  });
+  
+  const completed = jobs.filter(j => j.status === 'completed');
+  const failed = jobs.filter(j => j.status === 'failed');
+  
+  return {
+    totalJobs: jobs.length,
+    successRate: completed.length / jobs.length,
+    failureRate: failed.length / jobs.length,
+    avgExecutionTime: completed.reduce((sum, j) => 
+      sum + (j.completed_at - j.created_at), 0) / completed.length
+  };
+}
+```
+
+---
+
+## See Also
+
+- [Tool Discovery](/api-reference/tool-discovery)
+- [Error Handling](/api-reference/errors)
+- [Webhooks & Events](/api-reference/webhooks)
+- [Code Examples](/examples/execution-flow)
+
