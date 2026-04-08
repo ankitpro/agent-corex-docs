@@ -894,7 +894,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://api.agent-corex.com",
+      "value": "https://app.agent-corex.com",
       "type": "string"
     },
     {

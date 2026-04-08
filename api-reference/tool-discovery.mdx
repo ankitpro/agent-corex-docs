@@ -37,13 +37,13 @@ Optional (returns more detailed results with API key)
 
 **Basic Search:**
 ```bash
-curl "https://api.agent-corex.com/retrieve_tools?query=create+github+pull+request" \
+curl "https://app.agent-corex.com/retrieve_tools?query=create+github+pull+request" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 **With Result Limit:**
 ```bash
-curl "https://api.agent-corex.com/retrieve_tools?query=deploy&top_k=10" \
+curl "https://app.agent-corex.com/retrieve_tools?query=deploy&top_k=10" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -120,13 +120,13 @@ Optional
 
 **Standard Advanced Search:**
 ```bash
-curl "https://api.agent-corex.com/v2/retrieve_tools?query=deploy+to+AWS&top_k=5&use_hybrid_v3=true" \
+curl "https://app.agent-corex.com/v2/retrieve_tools?query=deploy+to+AWS&top_k=5&use_hybrid_v3=true" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 **Explicit Server Focus:**
 ```bash
-curl "https://api.agent-corex.com/v2/retrieve_tools?query=manage+kubernetes+clusters&top_k=10"
+curl "https://app.agent-corex.com/v2/retrieve_tools?query=manage+kubernetes+clusters&top_k=10"
 ```
 
 ### Response Format
@@ -189,7 +189,7 @@ None
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/v2/capabilities" \
+curl "https://app.agent-corex.com/v2/capabilities" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -227,7 +227,7 @@ Optional
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/capabilities" \
+curl "https://app.agent-corex.com/capabilities" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -270,7 +270,7 @@ None
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/tools" \
+curl "https://app.agent-corex.com/tools" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -305,7 +305,7 @@ Not required
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/tools/registry"
+curl "https://app.agent-corex.com/tools/registry"
 ```
 
 ### Response Format
@@ -344,7 +344,7 @@ Not required
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/tools/registry/create_pr"
+curl "https://app.agent-corex.com/tools/registry/create_pr"
 ```
 
 ### Response Format
@@ -438,15 +438,15 @@ For complex workflows, chain multiple queries:
 
 ```bash
 # Step 1: Find deployment tools
-curl "https://api.agent-corex.com/retrieve_tools?query=deploy+to+AWS"
+curl "https://app.agent-corex.com/retrieve_tools?query=deploy+to+AWS"
 
 # Step 2: Find notification tools
-curl "https://api.agent-corex.com/retrieve_tools?query=send+Slack+notification"
+curl "https://app.agent-corex.com/retrieve_tools?query=send+Slack+notification"
 
 # Step 3: Execute both in sequence
-curl -X POST "https://api.agent-corex.com/execute_tool" \
+curl -X POST "https://app.agent-corex.com/execute_tool" \
   -d '{"tool": "deploy_to_aws", "arguments": {...}}'
-curl -X POST "https://api.agent-corex.com/execute_tool" \
+curl -X POST "https://app.agent-corex.com/execute_tool" \
   -d '{"tool": "send_slack_message", "arguments": {...}}'
 ```
 
@@ -525,7 +525,7 @@ async function safeRetrieveTools(query) {
 Tools endpoints support pagination:
 
 ```bash
-curl "https://api.agent-corex.com/tools?limit=20&offset=0"
+curl "https://app.agent-corex.com/tools?limit=20&offset=0"
 ```
 
 Response includes pagination info:

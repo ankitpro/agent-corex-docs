@@ -30,7 +30,7 @@ Required
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/mcp_servers" \
+curl "https://app.agent-corex.com/mcp_servers" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -87,7 +87,7 @@ Required
 
 **Enable Server:**
 ```bash
-curl -X POST "https://api.agent-corex.com/mcp_servers/toggle" \
+curl -X POST "https://app.agent-corex.com/mcp_servers/toggle" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -98,7 +98,7 @@ curl -X POST "https://api.agent-corex.com/mcp_servers/toggle" \
 
 **Disable Server:**
 ```bash
-curl -X POST "https://api.agent-corex.com/mcp_servers/toggle" \
+curl -X POST "https://app.agent-corex.com/mcp_servers/toggle" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -142,7 +142,7 @@ Required
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/tools/installed" \
+curl "https://app.agent-corex.com/tools/installed" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -174,7 +174,7 @@ Not required
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/mcp_registry"
+curl "https://app.agent-corex.com/mcp_registry"
 ```
 
 ### Response Format
@@ -216,7 +216,7 @@ Not required
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/mcp_registry/github-mcp"
+curl "https://app.agent-corex.com/mcp_registry/github-mcp"
 ```
 
 ### Response Format
@@ -265,7 +265,7 @@ curl "https://api.agent-corex.com/mcp_registry/github-mcp"
 **Auth:** Required (Admin)
 
 ```bash
-curl -X POST "https://api.agent-corex.com/admin/mcp_registry" \
+curl -X POST "https://app.agent-corex.com/admin/mcp_registry" \
   -H "Authorization: Bearer ADMIN_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -288,7 +288,7 @@ curl -X POST "https://api.agent-corex.com/admin/mcp_registry" \
 **Auth:** Required (Admin)
 
 ```bash
-curl -X PATCH "https://api.agent-corex.com/admin/mcp_registry/github-mcp" \
+curl -X PATCH "https://app.agent-corex.com/admin/mcp_registry/github-mcp" \
   -H "Authorization: Bearer ADMIN_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -306,7 +306,7 @@ curl -X PATCH "https://api.agent-corex.com/admin/mcp_registry/github-mcp" \
 **Auth:** Required (Admin)
 
 ```bash
-curl -X DELETE "https://api.agent-corex.com/admin/mcp_registry/github-mcp" \
+curl -X DELETE "https://app.agent-corex.com/admin/mcp_registry/github-mcp" \
   -H "Authorization: Bearer ADMIN_KEY"
 ```
 
@@ -319,7 +319,7 @@ curl -X DELETE "https://api.agent-corex.com/admin/mcp_registry/github-mcp" \
 **Auth:** Required (Admin)
 
 ```bash
-curl -X POST "https://api.agent-corex.com/admin/mcp_registry/sync-to-supabase" \
+curl -X POST "https://app.agent-corex.com/admin/mcp_registry/sync-to-supabase" \
   -H "Authorization: Bearer ADMIN_KEY"
 ```
 

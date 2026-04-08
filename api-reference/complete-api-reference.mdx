@@ -39,24 +39,24 @@ All protected endpoints require authentication using one of these methods:
 ### Method 1: Bearer Token (Recommended)
 ```bash
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  https://api.agent-corex.com/retrieve_tools?query=...
+  https://app.agent-corex.com/retrieve_tools?query=...
 ```
 
 ### Method 2: Header Key
 ```bash
 curl -H "X-API-Key: YOUR_API_KEY" \
-  https://api.agent-corex.com/retrieve_tools?query=...
+  https://app.agent-corex.com/retrieve_tools?query=...
 ```
 
 ### Method 3: Query Parameter
 ```bash
-curl "https://api.agent-corex.com/retrieve_tools?query=...&api_key=YOUR_API_KEY"
+curl "https://app.agent-corex.com/retrieve_tools?query=...&api_key=YOUR_API_KEY"
 ```
 
 ### Method 4: Admin Key (For Admin Endpoints)
 ```bash
 curl -H "X-Admin-Key: ADMIN_KEY" \
-  https://api.agent-corex.com/admin/users
+  https://app.agent-corex.com/admin/users
 ```
 
 ---
@@ -64,7 +64,7 @@ curl -H "X-Admin-Key: ADMIN_KEY" \
 ## 🌐 Base URL
 
 ```
-https://api.agent-corex.com
+https://app.agent-corex.com
 ```
 
 All endpoints listed below are relative to this base URL.
@@ -89,7 +89,7 @@ Semantic search over tools by natural language query.
     query: "Create a GitHub pull request and deploy to AWS",
     top_k: "5"
   }}
-  baseUrl="https://api.agent-corex.com"
+  baseUrl="https://app.agent-corex.com"
   auth={{
     type: "bearer",
     name: "API Key"
@@ -122,7 +122,7 @@ List all available tools with metadata.
 
 **Example Request:**
 ```bash
-curl https://api.agent-corex.com/tools \
+curl https://app.agent-corex.com/tools \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -153,7 +153,7 @@ Advanced V2/V3 hybrid retrieval with capability filtering.
 
 **Example Request:**
 ```bash
-curl "https://api.agent-corex.com/v2/retrieve_tools?query=deploy&top_k=10&use_hybrid_v3=true" \
+curl "https://app.agent-corex.com/v2/retrieve_tools?query=deploy&top_k=10&use_hybrid_v3=true" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -248,7 +248,7 @@ Execute a tool directly (admin only).
 <APIPlayground 
   method="POST" 
   path="/execute_tool"
-  baseUrl="https://api.agent-corex.com"
+  baseUrl="https://app.agent-corex.com"
   requestBody={{
     tool: "github_create_pr",
     arguments: {

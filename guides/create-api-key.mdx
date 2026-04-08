@@ -89,7 +89,7 @@ $env:AGENT_COREX_API_KEY = "acx_live_xxx"
 ```bash
 # .env
 AGENT_COREX_API_KEY=acx_live_xxx
-AGENT_COREX_API_URL=https://api.agent-corex.com
+AGENT_COREX_API_URL=https://app.agent-corex.com
 ```
 
 ```javascript
@@ -130,7 +130,7 @@ const agent = new AgentCorex({
 
 ```bash
 curl -H "Authorization: Bearer $AGENT_COREX_API_KEY" \
-  https://api.agent-corex.com/v1/retrieve_tools
+  https://app.agent-corex.com/v1/retrieve_tools
 ```
 
 ### With Environment Variable in Commands
@@ -139,12 +139,12 @@ curl -H "Authorization: Bearer $AGENT_COREX_API_KEY" \
 # Linux/macOS
 API_KEY=$(echo $AGENT_COREX_API_KEY)
 curl -H "Authorization: Bearer $API_KEY" \
-  https://api.agent-corex.com/v1/retrieve_tools
+  https://app.agent-corex.com/v1/retrieve_tools
 
 # Windows PowerShell
 $apiKey = $env:AGENT_COREX_API_KEY
 curl -H "Authorization: Bearer $apiKey" `
-  https://api.agent-corex.com/v1/retrieve_tools
+  https://app.agent-corex.com/v1/retrieve_tools
 ```
 
 ---

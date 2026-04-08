@@ -115,12 +115,12 @@ print("PR Created:", result)
 
 ```bash
 # 1. Retrieve tools
-curl -X GET "https://api.agent-corex.com/retrieve_tools?query=Create%20a%20GitHub%20PR" \
+curl -X GET "https://app.agent-corex.com/retrieve_tools?query=Create%20a%20GitHub%20PR" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json"
 
 # 2. Execute a tool
-curl -X POST "https://api.agent-corex.com/execute_tool" \
+curl -X POST "https://app.agent-corex.com/execute_tool" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

@@ -44,7 +44,7 @@ Required (Admin key)
 
 **Simple Execution:**
 ```bash
-curl -X POST "https://api.agent-corex.com/execute_tool" \
+curl -X POST "https://app.agent-corex.com/execute_tool" \
   -H "Authorization: Bearer ADMIN_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -61,7 +61,7 @@ curl -X POST "https://api.agent-corex.com/execute_tool" \
 
 **With Timeout:**
 ```bash
-curl -X POST "https://api.agent-corex.com/execute_tool" \
+curl -X POST "https://app.agent-corex.com/execute_tool" \
   -H "Authorization: Bearer ADMIN_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -150,7 +150,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X POST "https://api.agent-corex.com/jobs/submit" \
+curl -X POST "https://app.agent-corex.com/jobs/submit" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -193,7 +193,7 @@ Required
 ### Request Example
 
 ```bash
-curl "https://api.agent-corex.com/jobs/job_abc123def456" \
+curl "https://app.agent-corex.com/jobs/job_abc123def456" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -296,7 +296,7 @@ Required (Job owner only)
 ### Request Example
 
 ```bash
-curl -X DELETE "https://api.agent-corex.com/jobs/job_abc123def456" \
+curl -X DELETE "https://app.agent-corex.com/jobs/job_abc123def456" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -353,13 +353,13 @@ Required
 
 **List Recent Jobs:**
 ```bash
-curl "https://api.agent-corex.com/jobs" \
+curl "https://app.agent-corex.com/jobs" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 **Filter by Status:**
 ```bash
-curl "https://api.agent-corex.com/jobs?status=failed&limit=50" \
+curl "https://app.agent-corex.com/jobs?status=failed&limit=50" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -459,7 +459,7 @@ For long-running jobs, register webhooks instead of polling:
 ### Register Webhook
 
 ```bash
-curl -X POST "https://api.agent-corex.com/webhooks" \
+curl -X POST "https://app.agent-corex.com/webhooks" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -592,7 +592,7 @@ X-RateLimit-Reset: 1642262400
 ### List All Jobs
 
 ```bash
-curl "https://api.agent-corex.com/jobs?status=running&limit=100" \
+curl "https://app.agent-corex.com/jobs?status=running&limit=100" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
