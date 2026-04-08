@@ -167,7 +167,7 @@ print("PR created:", result['pr_url'])
 
 ```bash
 # Retrieve tools
-curl -X POST "https://app.agent-corex.com/v1/retrieve_tools" \
+curl -X POST "https://api.agent-corex.com/v1/retrieve_tools" \
   -H "Authorization: Bearer acx_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -176,7 +176,7 @@ curl -X POST "https://app.agent-corex.com/v1/retrieve_tools" \
   }'
 
 # Execute tool
-curl -X POST "https://app.agent-corex.com/v1/execute_tool" \
+curl -X POST "https://api.agent-corex.com/v1/execute_tool" \
   -H "Authorization: Bearer acx_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{

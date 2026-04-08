@@ -52,10 +52,10 @@ Invalid request format or parameters.
 **Solution:**
 ```bash
 # ❌ Bad
-curl "https://app.agent-corex.com/retrieve_tools"
+curl "https://api.agent-corex.com/retrieve_tools"
 
 # ✅ Good
-curl "https://app.agent-corex.com/retrieve_tools?query=deploy"
+curl "https://api.agent-corex.com/retrieve_tools?query=deploy"
 ```
 
 ---
@@ -77,11 +77,11 @@ Invalid or missing API key.
 **Solution:**
 ```bash
 # ✅ Correct auth
-curl "https://app.agent-corex.com/jobs" \
+curl "https://api.agent-corex.com/jobs" \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Or
-curl "https://app.agent-corex.com/jobs?api_key=YOUR_API_KEY"
+curl "https://api.agent-corex.com/jobs?api_key=YOUR_API_KEY"
 ```
 
 ---

@@ -70,7 +70,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X POST "https://app.agent-corex.com/custom-packs/mcp-servers" \
+curl -X POST "https://api.agent-corex.com/custom-packs/mcp-servers" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -133,7 +133,7 @@ Required
 ### Request Example
 
 ```bash
-curl "https://app.agent-corex.com/custom-packs/mcp-servers" \
+curl "https://api.agent-corex.com/custom-packs/mcp-servers" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -184,7 +184,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X POST "https://app.agent-corex.com/custom-packs/packs" \
+curl -X POST "https://api.agent-corex.com/custom-packs/packs" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -246,7 +246,7 @@ Required
 ### Request Example
 
 ```bash
-curl "https://app.agent-corex.com/custom-packs/packs" \
+curl "https://api.agent-corex.com/custom-packs/packs" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -302,7 +302,7 @@ Required
 ### Request Example
 
 ```bash
-curl "https://app.agent-corex.com/custom-packs/packs/pack_dev_123" \
+curl "https://api.agent-corex.com/custom-packs/packs/pack_dev_123" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -359,7 +359,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X PATCH "https://app.agent-corex.com/custom-packs/packs/pack_dev_123" \
+curl -X PATCH "https://api.agent-corex.com/custom-packs/packs/pack_dev_123" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -391,7 +391,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X DELETE "https://app.agent-corex.com/custom-packs/packs/pack_dev_123" \
+curl -X DELETE "https://api.agent-corex.com/custom-packs/packs/pack_dev_123" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -423,7 +423,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X POST "https://app.agent-corex.com/custom-packs/packs/pack_dev_123/servers" \
+curl -X POST "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/servers" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -461,7 +461,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X DELETE "https://app.agent-corex.com/custom-packs/packs/pack_dev_123/servers/redis-mcp" \
+curl -X DELETE "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/servers/redis-mcp" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -494,7 +494,7 @@ Required
 ### Request Example
 
 ```bash
-curl -X PUT "https://app.agent-corex.com/custom-packs/packs/pack_dev_123/servers" \
+curl -X PUT "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/servers" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -524,7 +524,7 @@ Required
 ### Request Example
 
 ```bash
-curl "https://app.agent-corex.com/custom-packs/packs/pack_dev_123/install" \
+curl "https://api.agent-corex.com/custom-packs/packs/pack_dev_123/install" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -552,7 +552,7 @@ curl "https://app.agent-corex.com/custom-packs/packs/pack_dev_123/install" \
 
 ```bash
 # Step 1: Create custom server for design system
-curl -X POST "https://app.agent-corex.com/custom-packs/mcp-servers" \
+curl -X POST "https://api.agent-corex.com/custom-packs/mcp-servers" \
   -d '{
     "name": "design-system-api",
     "display_name": "Design System API",
@@ -560,7 +560,7 @@ curl -X POST "https://app.agent-corex.com/custom-packs/mcp-servers" \
   }'
 
 # Step 2: Create pack combining design tools with GitHub
-curl -X POST "https://app.agent-corex.com/custom-packs/packs" \
+curl -X POST "https://api.agent-corex.com/custom-packs/packs" \
   -d '{
     "name": "Frontend Development",
     "description": "Design, git, and deployment tools",
@@ -568,7 +568,7 @@ curl -X POST "https://app.agent-corex.com/custom-packs/packs" \
   }'
 
 # Step 3: Enable it
-curl -X POST "https://app.agent-corex.com/packs/enable" \
+curl -X POST "https://api.agent-corex.com/packs/enable" \
   -d '{"pack_id": "pack_frontend_123"}'
 ```
 
@@ -581,7 +581,7 @@ curl -X POST "https://app.agent-corex.com/packs/enable" \
 ```bash
 # Create servers for each service
 for service in auth payments notifications; do
-  curl -X POST "https://app.agent-corex.com/custom-packs/mcp-servers" \
+  curl -X POST "https://api.agent-corex.com/custom-packs/mcp-servers" \
     -d "{
       \"name\": \"$service-service\",
       \"display_name\": \"$service Service API\"
@@ -589,7 +589,7 @@ for service in auth payments notifications; do
 done
 
 # Create pack combining all
-curl -X POST "https://app.agent-corex.com/custom-packs/packs" \
+curl -X POST "https://api.agent-corex.com/custom-packs/packs" \
   -d '{
     "name": "Microservices",
     "servers": ["auth-service", "payments-service", "notifications-service"]
@@ -796,7 +796,7 @@ Once pack is enabled, use tools:
 
 ```bash
 # Tools from enabled pack are discoverable
-curl "https://app.agent-corex.com/retrieve_tools?query=create+github+issue" \
+curl "https://api.agent-corex.com/retrieve_tools?query=create+github+issue" \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Response includes tools from all servers in enabled packs

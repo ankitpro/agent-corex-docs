@@ -30,13 +30,13 @@ const agent = new AgentCorex({
 
 // cURL
 curl -H "Authorization: Bearer acx_live_xxx" \
-  https://app.agent-corex.com/v1/retrieve_tools
+  https://api.agent-corex.com/v1/retrieve_tools
 ```
 
 #### Alternative: Query parameter
 
 ```bash
-curl "https://app.agent-corex.com/v1/retrieve_tools?api_key=acx_live_xxx"
+curl "https://api.agent-corex.com/v1/retrieve_tools?api_key=acx_live_xxx"
 ```
 
 ### OAuth Authentication
@@ -92,7 +92,7 @@ const token = jwt.sign(
 );
 
 // 2. Use in requests
-fetch('https://app.agent-corex.com/v1/retrieve_tools', {
+fetch('https://api.agent-corex.com/v1/retrieve_tools', {
   headers: {
     'Authorization': `Bearer ${token}`
   }
@@ -187,10 +187,10 @@ app.use(limiter);
 
 ```javascript
 // ❌ Never use HTTP
-// http://app.agent-corex.com/retrieve_tools
+// http://api.agent-corex.com/retrieve_tools
 
 // ✅ Always use HTTPS
-// https://app.agent-corex.com/retrieve_tools
+// https://api.agent-corex.com/retrieve_tools
 ```
 
 ### Error Handling

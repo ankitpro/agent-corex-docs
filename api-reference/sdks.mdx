@@ -250,7 +250,7 @@ console.log('Your packs:', packs.map(p => p.name));
 ```typescript
 const client = new AgentCorex({
   apiKey: process.env.AGENT_COREX_API_KEY,
-  baseUrl: 'https://app.agent-corex.com', // Custom endpoint
+  baseUrl: 'https://api.agent-corex.com', // Custom endpoint
   timeout: 30000, // 30 second timeout
   maxRetries: 3,
   retryDelay: 1000, // milliseconds
@@ -499,7 +499,7 @@ print(f"Your packs: {[p['name'] for p in packs]}")
 ```python
 client = AgentCorex(
     api_key=os.environ['AGENT_COREX_API_KEY'],
-    base_url='https://app.agent-corex.com',  # Custom endpoint
+    base_url='https://api.agent-corex.com',  # Custom endpoint
     timeout=30,  # seconds
     max_retries=3,
     verify_ssl=True

@@ -26,12 +26,12 @@ Get your API key from [dashboard.agent-corex.com](https://dashboard.agent-corex.
 **Header (Recommended)**
 ```bash
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  https://app.agent-corex.com/retrieve_tools?query=...
+  https://api.agent-corex.com/retrieve_tools?query=...
 ```
 
 **Query Parameter**
 ```bash
-curl "https://app.agent-corex.com/retrieve_tools?query=...&api_key=YOUR_API_KEY"
+curl "https://api.agent-corex.com/retrieve_tools?query=...&api_key=YOUR_API_KEY"
 ```
 
 ### Environment Variable
@@ -45,7 +45,7 @@ export AGENT_COREX_API_KEY="your_api_key"
 ## Base URL
 
 ```
-https://app.agent-corex.com/v1
+https://api.agent-corex.com/v1
 ```
 
 All endpoints are prefixed with this base URL.
@@ -122,7 +122,7 @@ Find available tools using natural language.
 ### Example Request
 
 ```bash
-curl -X GET "https://app.agent-corex.com/v1/retrieve_tools" \
+curl -X GET "https://api.agent-corex.com/v1/retrieve_tools" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -185,7 +185,7 @@ Get detailed information about a specific tool.
 ### Example Request
 
 ```bash
-curl -X GET "https://app.agent-corex.com/v1/tools/create-pull-request" \
+curl -X GET "https://api.agent-corex.com/v1/tools/create-pull-request" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -277,7 +277,7 @@ Execute a tool with specified parameters.
 ### Example Request
 
 ```bash
-curl -X POST "https://app.agent-corex.com/v1/execute_tool" \
+curl -X POST "https://api.agent-corex.com/v1/execute_tool" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -367,7 +367,7 @@ When rate limited (429 status):
 For list endpoints, use `limit` and `offset`:
 
 ```bash
-curl "https://app.agent-corex.com/v1/tools?limit=10&offset=20"
+curl "https://api.agent-corex.com/v1/tools?limit=10&offset=20"
 ```
 
 ### Response
@@ -393,7 +393,7 @@ curl "https://app.agent-corex.com/v1/tools?limit=10&offset=20"
 Use filters to narrow results:
 
 ```bash
-curl "https://app.agent-corex.com/v1/retrieve_tools" \
+curl "https://api.agent-corex.com/v1/retrieve_tools" \
   -d '{
     "query": "deploy",
     "filter": {
@@ -413,7 +413,7 @@ For long-running operations, use webhooks:
 ### Register Webhook
 
 ```bash
-curl -X POST "https://app.agent-corex.com/v1/webhooks" \
+curl -X POST "https://api.agent-corex.com/v1/webhooks" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
     "url": "https://your-domain.com/webhooks/agent-corex",
