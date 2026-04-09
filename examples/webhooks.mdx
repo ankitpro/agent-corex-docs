@@ -1,0 +1,153 @@
+---
+title: 'Webhook Integration Examples'
+description: 'Implement webhooks for real-time Agent-CoreX event notifications'
+---
+
+# Webhook Integration Examples
+
+Receive real-time notifications for Agent-CoreX events through webhooks.
+
+## Basic Webhook Setup
+
+### 1. Create a Webhook Endpoint
+
+```python
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/webhooks/agent-corex', methods=['POST'])
+def handle_webhook():
+    event_data = request.json
+    event_type = event_data['type']
+    
+    if event_type == 'tool.executed':
+        handle_tool_execution(event_data)
+    elif event_type == 'tool.failed':
+        handle_tool_failure(event_data)
+    elif event_type == 'query.completed':
+        handle_query_completion(event_data)
+    
+    return {'status': 'received'}, 200
+
+def handle_tool_execution(data):
+    print(f"Tool executed: {data['tool_name']}")
+
+def handle_tool_failure(data):
+    print(f"Tool failed: {data['tool_name']} - {data['error']}")
+
+def handle_query_completion(data):
+    print(f"Query completed: {data['query']}")
+```
+
+### 2. Register Webhook in Agent-CoreX
+
+```bash
+curl -X POST "https://api.agent-corex.com/webhooks" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-domain.com/webhooks/agent-corex",
+    "events": ["tool.executed", "tool.failed", "query.completed"],
+    "active": true
+  }'
+```
+
+## Webhook Events
+
+### tool.executed
+
+Triggered when a tool completes successfully.
+
+```json
+{
+  "type": "tool.executed",
+  "tool_id": "github-create-pr",
+  "tool_name": "Create GitHub PR",
+  "duration_ms": 1250,
+  "timestamp": "2026-04-09T10:30:00Z",
+  "result": {
+    "pr_url": "https://github.com/owner/repo/pull/123",
+    "pr_id": "123"
+  }
+}
+```
+
+### tool.failed
+
+Triggered when a tool execution fails.
+
+```json
+{
+  "type": "tool.failed",
+  "tool_id": "github-create-pr",
+  "tool_name": "Create GitHub PR",
+  "error": "Authentication failed",
+  "error_code": "AUTH_ERROR",
+  "timestamp": "2026-04-09T10:30:00Z"
+}
+```
+
+### query.completed
+
+Triggered when a semantic query completes.
+
+```json
+{
+  "type": "query.completed",
+  "query": "deploy to kubernetes",
+  "tools_found": 5,
+  "duration_ms": 320,
+  "timestamp": "2026-04-09T10:30:00Z",
+  "tools": [
+    {
+      "id": "k8s-deploy",
+      "name": "Kubernetes Deploy",
+      "relevance_score": 0.98
+    }
+  ]
+}
+```
+
+## Webhook Security
+
+### Verify Webhook Signature
+
+```python
+import hmac
+import hashlib
+
+WEBHOOK_SECRET = "your-webhook-secret"
+
+def verify_webhook_signature(payload, signature):
+    expected = hmac.new(
+        WEBHOOK_SECRET.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected)
+
+@app.route('/webhooks/agent-corex', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Agent-CoreX-Signature')
+    payload = request.data.decode('utf-8')
+    
+    if not verify_webhook_signature(payload, signature):
+        return {'error': 'Invalid signature'}, 401
+    
+    # Process webhook...
+    return {'status': 'ok'}, 200
+```
+
+## Best Practices
+
+1. **Always verify signatures** for security
+2. **Use exponential backoff** for retries
+3. **Process webhooks asynchronously** to avoid timeouts
+4. **Log webhook events** for debugging
+5. **Implement idempotency** using event IDs
+
+## Webhooks API
+
+See [Webhooks API](/api-reference/webhooks) documentation for complete details.

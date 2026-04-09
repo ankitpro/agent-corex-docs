@@ -94,7 +94,8 @@
         "mcp/what-is-mcp",
         "mcp/mcp-servers-for-developers",
         "mcp/setup-mcp-servers",
-        "mcp/example-filesystem"
+        "mcp/example-filesystem",
+        "mcp/security"
       ]
     },
     {
@@ -119,12 +120,14 @@
       "pages": [
         "api-reference/overview",
         "api-reference/complete-api-reference",
+        "api-reference/endpoints",
         "api-reference/endpoints-quick-reference",
         "api-reference/tool-discovery",
         "api-reference/tool-execution",
         "api-reference/query-events",
         "api-reference/mcp-servers",
         "api-reference/custom-packs",
+        "api-reference/capabilities",
         "api-reference/webhooks",
         "api-reference/sdks",
         "api-reference/errors",
@@ -141,6 +144,7 @@
         "guides/mcp-setup",
         "guides/reduce-token-usage",
         "guides/authentication",
+        "guides/using-the-dashboard",
         "guides/query-events-dashboard"
       ]
     },
@@ -149,7 +153,10 @@
       "pages": [
         "examples/sample-queries",
         "examples/execution-flow",
-        "examples/real-world-workflows"
+        "examples/real-world-workflows",
+        "examples/code-samples",
+        "examples/webhooks",
+        "examples/custom-packs"
       ]
     }
   ],

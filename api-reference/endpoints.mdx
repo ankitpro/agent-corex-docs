@@ -1,0 +1,166 @@
+---
+title: 'Detailed Endpoint Guide'
+description: 'Complete reference for all Agent-CoreX API endpoints'
+---
+
+# Detailed Endpoint Guide
+
+Comprehensive reference for Agent-CoreX API endpoints with examples and best practices.
+
+## Base URL
+
+```
+https://api.agent-corex.com/v1
+```
+
+All requests must include authentication headers.
+
+## Authentication
+
+Include your API key in the Authorization header:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+## Tool Discovery Endpoints
+
+### Retrieve Tools (GET/POST)
+
+**Endpoint:** `/retrieve_tools`
+
+**Description:** Search for tools using semantic queries
+
+**Method:** POST
+
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Request Body:**
+```json
+{
+  "query": "deploy application to kubernetes",
+  "top_k": 5,
+  "filters": {
+    "capabilities": ["deployment"],
+    "mcp_server": "devops-pack"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "tools": [
+    {
+      "id": "k8s-deploy",
+      "name": "Kubernetes Deploy",
+      "description": "Deploy containerized applications to Kubernetes clusters",
+      "relevance_score": 0.98,
+      "capabilities": ["deployment", "orchestration"],
+      "params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "query_time_ms": 245
+}
+```
+
+**Success Status:** 200 OK
+
+**Error Status:** 400 Bad Request, 401 Unauthorized, 429 Too Many Requests
+
+## Tool Execution Endpoints
+
+### Execute Tool (POST)
+
+**Endpoint:** `/tools/execute-a-tool`
+
+**Description:** Execute a tool with specified parameters
+
+**Request:**
+```json
+{
+  "tool_id": "k8s-deploy",
+  "params": {
+    "image": "my-app:latest",
+    "namespace": "production",
+    "replicas": 3
+  }
+}
+```
+
+**Response (Success):**
+```json
+{
+  "execution_id": "exec-789",
+  "tool_id": "k8s-deploy",
+  "status": "success",
+  "result": {
+    "deployment_id": "deploy-123",
+    "replicas": 3,
+    "status": "running"
+  },
+  "duration_ms": 1250
+}
+```
+
+**Response (Error):**
+```json
+{
+  "execution_id": "exec-790",
+  "tool_id": "k8s-deploy",
+  "status": "error",
+  "error": "Authentication failed with Kubernetes cluster",
+  "error_code": "AUTH_ERROR",
+  "timestamp": "2026-04-09T10:30:00Z"
+}
+```
+
+## Rate Limits
+
+| Plan | Request/Minute | Request/Month |
+|------|---|---|
+| Free | 60 | 50,000 |
+| Pro | 600 | 10,000,000 |
+| Enterprise | Unlimited | Unlimited |
+
+Rate limit information is included in response headers:
+
+```
+X-RateLimit-Limit: 600
+X-RateLimit-Remaining: 599
+X-RateLimit-Reset: 1712671800
+```
+
+## Error Codes
+
+| Code | Meaning |
+|------|---------|
+| 400 | Bad Request - Invalid parameters |
+| 401 | Unauthorized - Missing/invalid API key |
+| 404 | Not Found - Tool or resource not found |
+| 429 | Too Many Requests - Rate limit exceeded |
+| 500 | Server Error - Internal server error |
+
+## Endpoint Documentation
+
+For complete details on each endpoint, see:
+
+- [Tool Discovery & Retrieval](/api-reference/tool-discovery)
+- [Tool Execution](/api-reference/tool-execution)
+- [Query Events](/api-reference/query-events)
+- [Webhooks](/api-reference/webhooks)
+- [Custom Packs](/api-reference/custom-packs)
+
+## Quick Reference
+
+See [Endpoints Quick Reference](/api-reference/endpoints-quick-reference) for a condensed view of all available endpoints.

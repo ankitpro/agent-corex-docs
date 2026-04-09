@@ -1,0 +1,120 @@
+---
+title: 'Code Samples & Snippets'
+description: 'Practical code examples for integrating Agent-CoreX'
+---
+
+# Code Samples & Snippets
+
+Ready-to-use code examples for common Agent-CoreX use cases.
+
+## JavaScript/TypeScript
+
+### Basic Tool Discovery
+
+```typescript
+import { AgentCorexClient } from '@agent-corex/sdk';
+
+const client = new AgentCorexClient({
+  apiKey: process.env.AGENT_COREX_API_KEY,
+});
+
+async function findTools() {
+  const results = await client.retrieveTools({
+    query: 'create github pull request',
+    topK: 5,
+  });
+
+  for (const tool of results) {
+    console.log(`${tool.name}: ${tool.description}`);
+  }
+}
+
+findTools();
+```
+
+### Executing a Tool
+
+```typescript
+async function executeGitHubTool() {
+  const result = await client.executeTool({
+    toolId: 'github-create-pr',
+    params: {
+      repo: 'anthropics/claude-code',
+      title: 'Add new feature',
+      body: 'Feature description',
+      branch: 'feature-branch',
+    },
+  });
+
+  console.log('PR created:', result.url);
+}
+```
+
+## Python
+
+### Tool Discovery with Filtering
+
+```python
+from agent_corex import AgentCorexClient
+
+client = AgentCorexClient(api_key="your-api-key")
+
+# Find DevOps tools
+tools = client.retrieve_tools(
+    query="deploy application to kubernetes",
+    top_k=10,
+    filter={
+        "capabilities": ["deployment", "orchestration"],
+        "mcp_server": "devops-pack"
+    }
+)
+
+for tool in tools:
+    print(f"{tool['name']}: {tool['description']}")
+```
+
+### Error Handling
+
+```python
+try:
+    result = client.execute_tool(
+        tool_id="deploy-kubernetes",
+        params={
+            "image": "my-app:latest",
+            "namespace": "production",
+            "replicas": 3
+        }
+    )
+    print("Deployment successful:", result)
+except Exception as e:
+    print(f"Deployment failed: {e}")
+```
+
+## cURL Examples
+
+### Query Tools
+
+```bash
+curl "https://api.agent-corex.com/retrieve_tools" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d '{"query": "database backup", "top_k": 5}'
+```
+
+### Execute Tool
+
+```bash
+curl -X POST "https://api.agent-corex.com/tools/execute-a-tool" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_id": "mysql-backup",
+    "params": {
+      "database": "production_db",
+      "destination": "s3://backups"
+    }
+  }'
+```
+
+## Complete Workflow Example
+
+See [Real-World Workflows](/examples/real-world-workflows) for end-to-end integration examples.

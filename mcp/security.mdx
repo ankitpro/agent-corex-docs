@@ -1,0 +1,65 @@
+---
+title: 'MCP Security & Best Practices'
+description: 'Security guidelines and best practices for MCP server integration'
+---
+
+# MCP Security & Best Practices
+
+## Authentication & Authorization
+
+When integrating MCP servers with Agent-CoreX, ensure proper authentication mechanisms are in place.
+
+### API Key Management
+
+- Never hardcode API keys in your MCP server implementation
+- Use environment variables for sensitive credentials
+- Rotate API keys regularly
+- Revoke keys when MCP server access is no longer needed
+
+### Token Scoping
+
+Limit token permissions to the minimum required scope for your MCP server operations.
+
+## Data Privacy
+
+### Data in Transit
+
+- All MCP server communication with Agent-CoreX uses HTTPS/TLS
+- Encrypt sensitive data before passing through MCP tools
+- Validate SSL certificates for external server connections
+
+### Data at Rest
+
+- Consider encrypting sensitive data stored in your MCP server
+- Implement proper access controls for your server endpoints
+- Follow your organization's data retention policies
+
+## Server Validation
+
+### Input Validation
+
+- Validate all inputs received from Agent-CoreX
+- Implement rate limiting on your MCP server endpoints
+- Sanitize outputs before returning to Agent-CoreX
+
+### Error Handling
+
+- Don't expose sensitive information in error messages
+- Log security events appropriately
+- Implement proper exception handling
+
+## Compliance
+
+Ensure your MCP server implementation complies with:
+
+- GDPR for EU user data
+- CCPA for California residents
+- Industry-specific regulations (HIPAA, PCI-DSS, etc.)
+- Your organization's security policies
+
+## Security Monitoring
+
+- Monitor MCP server logs for suspicious activity
+- Set up alerts for authentication failures
+- Regularly audit access to your MCP server
+- Review usage patterns for anomalies

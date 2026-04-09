@@ -1,0 +1,49 @@
+---
+title: 'Pack Capabilities & Limits'
+description: 'Learn about pack capabilities, limitations, and tier features'
+---
+
+# Pack Capabilities & Limits
+
+Different packs provide varying capabilities and integration options.
+
+## Free Tier
+
+- Basic tool discovery (50 queries/month)
+- Single MCP server integration
+- Standard tool retrieval with semantic search
+- Community support
+
+## Pro Tier
+
+- Unlimited tool discovery queries
+- Up to 10 MCP server integrations
+- Advanced filtering and capability matching
+- Priority email support
+- Custom pack creation (Beta)
+
+## Enterprise Tier
+
+- Dedicated infrastructure
+- Unlimited integrations
+- Custom MCP pack development
+- SLA guarantees
+- Dedicated support
+
+## Rate Limits
+
+| Endpoint | Free | Pro | Enterprise |
+|----------|------|-----|------------|
+| `/retrieve_tools` | 50/month | Unlimited | Unlimited |
+| `/execute_tool` | 100/month | 10,000/month | Unlimited |
+| `/query_events` | 100/month | Unlimited | Unlimited |
+
+## Concurrent Connections
+
+- Free: 1 connection
+- Pro: 5 concurrent connections
+- Enterprise: Unlimited
+
+## Support Integration
+
+Each tier includes different levels of support for integrating new MCP servers and custom packs.

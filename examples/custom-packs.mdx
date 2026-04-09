@@ -1,0 +1,175 @@
+---
+title: 'Custom Pack Examples'
+description: 'Build and deploy custom MCP server packs for Agent-CoreX'
+---
+
+# Custom Pack Examples
+
+Learn how to create and deploy custom MCP server packs.
+
+## Creating a Custom Pack
+
+### Project Structure
+
+```
+my-custom-pack/
+├── src/
+│   ├── index.ts
+│   ├── tools/
+│   │   ├── deploy.ts
+│   │   └── monitor.ts
+│   └── utils/
+│       └── api-client.ts
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### Package Configuration
+
+```json
+{
+  "name": "my-custom-pack",
+  "version": "1.0.0",
+  "description": "Custom deployment tools pack",
+  "main": "dist/index.js",
+  "agent-corex": {
+    "type": "mcp-server",
+    "capabilities": ["deployment", "monitoring"],
+    "tools": [
+      {
+        "name": "deploy-service",
+        "description": "Deploy service to production",
+        "params": ["service_name", "version"]
+      },
+      {
+        "name": "get-metrics",
+        "description": "Get service metrics",
+        "params": ["service_name"]
+      }
+    ]
+  }
+}
+```
+
+## Tool Implementation
+
+### Basic Tool
+
+```typescript
+import { Tool } from '@agent-corex/sdk';
+
+export const deployServiceTool: Tool = {
+  name: 'deploy-service',
+  description: 'Deploy a service to production',
+  
+  params: {
+    service_name: {
+      type: 'string',
+      required: true,
+      description: 'Name of the service to deploy'
+    },
+    version: {
+      type: 'string',
+      required: true,
+      description: 'Version to deploy'
+    }
+  },
+  
+  async execute(params) {
+    try {
+      const result = await deployService(
+        params.service_name,
+        params.version
+      );
+      
+      return {
+        success: true,
+        deployment_id: result.id,
+        message: `Deployed ${params.service_name}@${params.version}`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+};
+
+async function deployService(name: string, version: string) {
+  // Implementation
+  return { id: 'deploy-123' };
+}
+```
+
+### Tool with Authentication
+
+```typescript
+export const getMetricsTool: Tool = {
+  name: 'get-metrics',
+  description: 'Get service metrics from monitoring system',
+  
+  requiresAuth: true,
+  authType: 'api-key',
+  
+  params: {
+    service_name: {
+      type: 'string',
+      required: true
+    },
+    metric_type: {
+      type: 'string',
+      enum: ['cpu', 'memory', 'requests', 'errors'],
+      required: true
+    }
+  },
+  
+  async execute(params, auth) {
+    const metricsApi = new MetricsClient(auth.apiKey);
+    const metrics = await metricsApi.getMetrics(
+      params.service_name,
+      params.metric_type
+    );
+    
+    return metrics;
+  }
+};
+```
+
+## Publishing Your Pack
+
+### Register with Agent-CoreX
+
+```bash
+# Build the pack
+npm run build
+
+# Create pack archive
+npm pack
+
+# Register with Agent-CoreX
+agent-corex pack register \
+  --name my-custom-pack \
+  --version 1.0.0 \
+  --file my-custom-pack-1.0.0.tgz
+```
+
+### Installation in User Accounts
+
+Users can install your pack:
+
+```bash
+agent-corex pack install my-custom-pack@1.0.0
+```
+
+## Full Pack Example
+
+See [Custom Packs API](/api-reference/custom-packs) for complete documentation.
+
+## Support & Community
+
+Share your custom packs:
+- Open source on GitHub
+- Publish to Agent-CoreX registry
+- Join community discussions
