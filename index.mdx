@@ -1,0 +1,259 @@
+---
+title: 'Agent-CoreX Documentation'
+description: 'Complete guide to Agent-CoreX - a dynamic MCP-based AI agent framework for building intelligent agents with access to 100+ MCP servers.'
+---
+
+<div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+  <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Welcome to Agent-CoreX Documentation</h1>
+  <p style={{ fontSize: '1.1rem', color: '#6b7280', marginBottom: '2rem' }}>
+    Build intelligent AI agents with dynamic tool discovery and MCP server integration
+  </p>
+  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+    <a href="/getting-started/quickstart" style={{ 
+      padding: '0.75rem 1.5rem', 
+      background: '#6366f1', 
+      color: 'white', 
+      borderRadius: '0.5rem',
+      textDecoration: 'none',
+      fontWeight: '600'
+    }}>Get Started</a>
+    <a href="https://www.agent-corex.com" style={{ 
+      padding: '0.75rem 1.5rem', 
+      background: '#e5e7eb', 
+      color: '#1f2937', 
+      borderRadius: '0.5rem',
+      textDecoration: 'none',
+      fontWeight: '600'
+    }}>Visit Main Site</a>
+  </div>
+</div>
+
+---
+
+## What is Agent-CoreX?
+
+Agent-CoreX is a powerful framework for building **AI agents that dynamically discover and execute tools** using the Model Context Protocol (MCP). It enables developers to create intelligent automation workflows with flexible, on-demand access to 100+ MCP servers.
+
+**Key Capabilities:**
+- ✨ **Dynamic Tool Discovery** - Find the perfect tool using natural language
+- 🔌 **MCP Integration** - Seamless connection with 100+ MCP servers
+- 🎯 **Smart Ranking** - AI-powered tool selection based on context
+- ⚡ **Token Optimization** - Minimize token usage with intelligent caching
+- 🏢 **Production-Ready** - Enterprise-grade security and monitoring
+
+---
+
+## Documentation Sections
+
+<CardGroup cols={2}>
+  <Card
+    title="Getting Started"
+    icon="rocket"
+    href="/getting-started/introduction"
+  >
+    Learn the basics of Agent-CoreX, from introduction to architecture.
+  </Card>
+  
+  <Card
+    title="Core Concepts"
+    icon="lightbulb"
+    href="/core-concepts/overview"
+  >
+    Dive deep into tool lifecycle, dynamic retrieval, and microservices.
+  </Card>
+
+  <Card
+    title="MCP Servers"
+    icon="plug"
+    href="/mcp/what-is-mcp"
+  >
+    Understand MCP, explore available servers, and setup integration.
+  </Card>
+
+  <Card
+    title="Tool Retrieval System"
+    icon="search"
+    href="/tool-retrieval/how-it-works"
+  >
+    Master tool ranking, retrieval logic, and optimization strategies.
+  </Card>
+
+  <Card
+    title="Use Cases"
+    icon="briefcase"
+    href="/use-cases/github-automation"
+  >
+    Real-world examples: GitHub automation, DevOps, Jira/Slack workflows.
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/overview"
+  >
+    Complete API documentation, endpoints, and SDK references.
+  </Card>
+
+  <Card
+    title="Guides"
+    icon="book"
+    href="/guides/getting-started"
+  >
+    Step-by-step guides for authentication, setup, and optimization.
+  </Card>
+
+  <Card
+    title="Examples"
+    icon="sparkles"
+    href="/examples/sample-queries"
+  >
+    Practical code examples and execution flows.
+  </Card>
+</CardGroup>
+
+---
+
+## Quick Navigation
+
+### For First-Time Users
+1. **[What is Agent-CoreX?](/getting-started/introduction)** - Understand the framework and its benefits
+2. **[Quick Start](/getting-started/quickstart)** - Get up and running in 5 minutes
+3. **[Architecture Overview](/getting-started/architecture)** - Learn how everything fits together
+
+### For Developers
+- **[Tool Retrieval API](/tool-retrieval/how-it-works)** - Query and retrieve tools dynamically
+- **[MCP Server Setup](/mcp/setup-mcp-servers)** - Integrate with MCP servers
+- **[API Reference](/api-reference/complete-api-reference)** - Complete endpoint documentation
+- **[Authentication Guide](/guides/authentication)** - Secure your implementation
+
+### For DevOps & Enterprise
+- **[DevOps Automation](/use-cases/devops-automation)** - Infrastructure automation with Terraform & Docker
+- **[GitHub Automation](/use-cases/github-automation)** - CI/CD and workflow automation
+- **[Jira & Slack Integration](/use-cases/jira-slack-workflows)** - Enterprise workflow orchestration
+
+---
+
+## Why Choose Agent-CoreX?
+
+### Traditional Approach ❌
+```
+Hardcode tools at startup
+↓
+Fixed tool set
+↓
+Change? Rebuild & redeploy
+```
+
+### Agent-CoreX Approach ✅
+```
+Query tools with natural language
+↓
+Get ranked, relevant tools instantly
+↓
+Dynamically adapt to any workflow
+```
+
+---
+
+## Try Agent-CoreX Today
+
+<CardGroup cols={2}>
+  <Card
+    title="Live Demo"
+    icon="play"
+    href="https://www.agent-corex.com"
+  >
+    Experience Agent-CoreX in action with our free tier.
+  </Card>
+
+  <Card
+    title="Dashboard"
+    icon="sliders"
+    href="https://www.agent-corex.com/dashboard"
+  >
+    Manage your API keys, packs, and MCP servers.
+  </Card>
+
+  <Card
+    title="GitHub Repository"
+    icon="github"
+    href="https://github.com/ankitpro/agent-corex"
+  >
+    Explore the source code and contribute.
+  </Card>
+
+  <Card
+    title="Get Support"
+    icon="headset"
+    href="https://github.com/ankitpro/agent-corex/issues"
+  >
+    Ask questions and report issues on GitHub.
+  </Card>
+</CardGroup>
+
+---
+
+## Frequently Asked Questions
+
+<Accordion title="Is Agent-CoreX only for AI agents?">
+No. While optimized for AI agents, Agent-CoreX can be used by any application needing dynamic tool discovery via MCP.
+</Accordion>
+
+<Accordion title="How many MCP servers are supported?">
+Agent-CoreX supports 100+ MCP servers including GitHub, Jira, Slack, Terraform, Docker, and many more.
+</Accordion>
+
+<Accordion title="Is it production-ready?">
+Yes. Agent-CoreX includes enterprise-grade security, rate limiting, monitoring, and audit logging.
+</Accordion>
+
+<Accordion title="Do I need Claude Code to use it?">
+No. While it integrates with Claude Code, Agent-CoreX works with any application via REST API.
+</Accordion>
+
+<Accordion title="Can I create custom MCP servers?">
+Absolutely. You can build custom MCP servers and integrate them with Agent-CoreX.
+</Accordion>
+
+---
+
+## Get Started Now
+
+**Ready to build intelligent, adaptive agents?**
+
+1. **[Start with Quickstart →](/getting-started/quickstart)** - 5-minute setup guide
+2. **[Explore Use Cases →](/use-cases/github-automation)** - Real-world examples
+3. **[Sign Up →](https://www.agent-corex.com)** - Create your free account
+
+---
+
+## Documentation Links
+
+**Core Resources:**
+- [What is Agent-CoreX?](/getting-started/introduction)
+- [Quick Start Guide](/getting-started/quickstart)
+- [System Architecture](/getting-started/architecture)
+- [MCP Overview](/mcp/what-is-mcp)
+- [Complete API Reference](/api-reference/complete-api-reference)
+
+**Integration Guides:**
+- [Setup MCP Servers](/mcp/setup-mcp-servers)
+- [Authentication](/guides/authentication)
+- [Create API Key](/guides/create-api-key)
+- [Query Events Dashboard](/guides/query-events-dashboard)
+
+**Learn More:**
+- [Tool Retrieval System](/tool-retrieval/how-it-works)
+- [Ranking Logic](/tool-retrieval/ranking-logic)
+- [Token Optimization](/guides/reduce-token-usage)
+- [Real-world Examples](/examples/real-world-workflows)
+
+---
+
+## Stay Updated
+
+- **GitHub:** https://github.com/ankitpro/agent-corex
+- **Twitter:** https://twitter.com/ankitko0l
+- **Email Support:** [Contact via GitHub Issues](https://github.com/ankitpro/agent-corex/issues)
+
+**Last Updated:** April 2026 | [View on GitHub](https://github.com/ankitpro/agent-corex/tree/main/docs)

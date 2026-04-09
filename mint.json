@@ -64,6 +64,12 @@
   ],
   "navigation": [
     {
+      "group": "Home",
+      "pages": [
+        "index"
+      ]
+    },
+    {
       "group": "Getting Started",
       "pages": [
         "getting-started/introduction",
