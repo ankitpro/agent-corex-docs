@@ -1,0 +1,26 @@
+{
+  "public": true,
+  "buildCommand": "",
+  "installCommand": "",
+  "env": [],
+  "git": {
+    "deploymentEnabled": true
+  },
+  "headers": [
+    {
+      "source": "/:filename(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/397aa3994dcb997f37972d70951d2e82.txt",
+      "destination": "/397aa3994dcb997f37972d70951d2e82.txt"
+    }
+  ]
+}

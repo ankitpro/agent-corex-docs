@@ -204,4 +204,11 @@
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+  <!-- IndexNow Verification File -->
+  <url>
+    <loc>https://docs.agent-corex.com/397aa3994dcb997f37972d70951d2e82.txt</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>never</changefreq>
+    <priority>1.0</priority>
+  </url>
 </urlset>

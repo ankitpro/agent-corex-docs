@@ -162,5 +162,12 @@
   "modeToggle": {
     "default": "dark",
     "isHidden": false
-  }
+  },
+  "metadata": {
+    "og:image": "/logo/dark.svg",
+    "og:title": "Agent-CoreX Documentation",
+    "og:description": "Dynamic MCP-based AI agent framework with 100+ server integration"
+  },
+  "openapi": "/openapi.json",
+  "redirects": []
 }
