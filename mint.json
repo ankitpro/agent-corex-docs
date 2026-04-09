@@ -130,8 +130,7 @@
         "api-reference/errors",
         "api-reference/retrieve-tools",
         "api-reference/get-tool",
-        "api-reference/execute-tool",
-        "api-reference/openapi"
+        "api-reference/execute-tool"
       ]
     },
     {
