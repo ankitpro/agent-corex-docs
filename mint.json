@@ -40,7 +40,7 @@
     {
       "name": "API Reference",
       "url": "api-reference",
-      "openapi": "/openapi.json"
+      "openapi": "api-reference/openapi.yaml"
     },
     {
       "name": "Guides",
